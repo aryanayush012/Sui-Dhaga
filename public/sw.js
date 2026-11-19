@@ -1,8 +1,7 @@
 // Bump CACHE when this file's strategy changes; activate deletes older caches.
 const CACHE = 'sui-dhaga-v1'
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.add('/')).catch(() => {}))
+self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
@@ -29,6 +28,17 @@ self.addEventListener('fetch', (e) => {
       })),
     )
   } else if (request.mode === 'navigate') {
-    e.respondWith(fetch(request).catch(() => caches.match('/')))
+    // Only the client-rendered board shell at `/` is kept (no customer data in it); refreshed on every
+    // successful visit so it never points at stale chunk hashes. Redirects (logged-out -> /login) are
+    // not cached: browsers reject redirected responses for navigations.
+    e.respondWith(
+      fetch(request).then((res) => {
+        if (url.pathname === '/' && res.ok && !res.redirected && res.type === 'basic') {
+          const copy = res.clone()
+          caches.open(CACHE).then((c) => c.put('/', copy))
+        }
+        return res
+      }).catch(() => caches.match('/').then((hit) => hit || Response.error())),
+    )
   }
 })
