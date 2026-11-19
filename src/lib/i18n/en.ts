@@ -130,6 +130,7 @@ export const en = {
   'od.cancel_order': 'Cancel order',
   'od.deliver': 'Mark delivered',
   'od.confirm_cancel': 'Cancel this order?',
+  'od.confirm_resume': 'Re-open this order?',
   'od.confirm_deliver': 'Mark this order as delivered?',
   'od.save': 'Save',
   'od.close': 'Close',

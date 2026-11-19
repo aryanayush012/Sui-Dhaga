@@ -132,6 +132,7 @@ export const hi = {
   'od.cancel_order': 'ऑर्डर रद्द करें',
   'od.deliver': 'डिलीवर हो गया',
   'od.confirm_cancel': 'यह ऑर्डर रद्द करें?',
+  'od.confirm_resume': 'यह ऑर्डर दोबारा खोलें?',
   'od.confirm_deliver': 'इस ऑर्डर को डिलीवर मानें?',
   'od.save': 'सेव करें',
   'od.close': 'बंद करें',

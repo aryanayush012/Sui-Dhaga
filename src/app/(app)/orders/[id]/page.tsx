@@ -166,7 +166,12 @@ export default function OrderDetailPage() {
   // Plain link so WhatsApp opens inside the tap; the send is logged fire-and-forget.
   const waLink = (kind: CommKind, label: string, due?: string) => o.customer_mobile && o.tracking_token && (
     <a href={whatsappLink(o.customer_mobile, waText(kind, due))} target="_blank" rel="noopener noreferrer"
-      onClick={() => { void rpc('record_whatsapp_send', { p_order_id: o.id, p_kind: kind }) }}
+      onClick={() => {
+        // Lazy builder: must be subscribed with then() or the request never fires.
+        rpc('record_whatsapp_send', { p_order_id: o.id, p_kind: kind }).then(({ error }) => {
+          if (error) console.warn('record_whatsapp_send', error.message); else load()
+        })
+      }}
       className={primary}>
       {label}{o.communicated && o.comm_kind === kind ? ' ✓' : ''}
     </a>
@@ -207,6 +212,7 @@ export default function OrderDetailPage() {
   }
   async function setState(s: 'on_hold' | 'cancelled' | 'delivered' | null) {
     if (!o) return
+    if (s === null && closed && !window.confirm(t('od.confirm_resume'))) return
     if (s === 'cancelled' && !window.confirm(t('od.confirm_cancel'))) return
     if (s === 'delivered' && !window.confirm(t('od.confirm_deliver'))) return
     if ((await run(rpc('set_special_state', { p_order_id: o.id, p_state: s }))) && s === 'delivered') router.push('/')
@@ -346,6 +352,7 @@ export default function OrderDetailPage() {
               <button className={`${primary} w-full`} disabled={busy} onClick={() => setState('delivered')}>{t('od.deliver')}</button>
             </div>
           )}
+          {closed && <button className={btn} disabled={busy} onClick={() => setState(null)}>{t('od.resume')}</button>}
         </div>
       )}
 

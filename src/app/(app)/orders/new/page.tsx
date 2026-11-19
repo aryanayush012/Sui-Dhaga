@@ -97,7 +97,12 @@ export default function NewOrderPage() {
         <p className="text-7xl font-bold">#{done.slip_no}</p>
         {/* Plain link: opens inside the tap gesture. Send is logged fire-and-forget. */}
         <a href={whatsappLink(done.mobile, text)} target="_blank" rel="noopener noreferrer"
-          onClick={() => { void supabase.rpc('record_whatsapp_send', { p_order_id: done.id, p_kind: 'created' }) }}
+          onClick={() => {
+            // Lazy builder: must be subscribed with then() or the request never fires.
+            supabase.rpc('record_whatsapp_send', { p_order_id: done.id, p_kind: 'created' }).then(({ error }) => {
+              if (error) console.warn('record_whatsapp_send', error.message)
+            })
+          }}
           className="flex min-h-14 w-full items-center justify-center rounded-lg bg-accent text-xl text-white">{t('order.whatsapp')}</a>
         <button onClick={() => router.push('/')} className="min-h-12 w-full rounded-lg border border-line bg-white text-lg">{t('order.skip')}</button>
       </main>
