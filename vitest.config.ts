@@ -7,5 +7,7 @@ export default defineConfig(({ mode }) => ({
   test: {
     env: loadEnv(mode, process.cwd(), ''),
     include: ['src/**/*.test.ts', 'tests/db/**/*.test.ts'],
+    testTimeout: 30_000, // db tests hit a hosted Supabase
+    hookTimeout: 30_000,
   },
 }))

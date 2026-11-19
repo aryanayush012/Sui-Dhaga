@@ -10,7 +10,8 @@
     "test": "vitest run src",
     "test:db": "vitest run tests/db",
     "e2e": "playwright test",
-    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts"
+    "db:types": "node --env-file=.env.local scripts/supabase-db.mjs gen types typescript > src/lib/database.types.ts",
+    "db:reset": "node --env-file=.env.local scripts/supabase-db.mjs db reset --yes"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
