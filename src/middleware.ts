@@ -19,4 +19,4 @@ export async function middleware(req: NextRequest) {
 }
 
 // Not protected: /login, /t/* (public tracking), Next internals, static files (anything with an extension).
-export const config = { matcher: ['/((?!login|t/|_next/|api/|.*\\..*).*)'] }
+export const config = { matcher: ['/((?!login|t/|_next/|.*\\..*).*)'] }
