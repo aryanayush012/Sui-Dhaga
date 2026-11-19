@@ -29,6 +29,11 @@ export function OrderCard({ o, today, canMove, onMove }: {
           <span>{t('board.due', { date: o.due_date })}</span>
           <DeadlineChip kind={deadlineChip(o, today)} />
           {o.special_state === 'on_hold' && <span className="rounded-full bg-gray-200 px-2 py-0.5 text-sm font-semibold">{t('board.hold')}</span>}
+          {(o.special_state === 'delivered' || o.special_state === 'cancelled') && (
+            <span className={`rounded-full px-2 py-0.5 text-sm font-semibold ${o.special_state === 'delivered' ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'}`}>
+              {t(o.special_state === 'delivered' ? 'od.state_delivered' : 'od.state_cancelled')}
+            </span>
+          )}
           {o.assignee_name && <span className="text-muted">{o.assignee_name}</span>}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-base">

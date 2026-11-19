@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSession } from '@/lib/session'
 import { useT, stageLabel, type Key } from '@/lib/i18n'
 import { todayIST } from '@/lib/deadline'
-import { loadCache, matchesSearch, nextStage, saveCache, searchFilter, type Stage } from '@/lib/board'
+import { applyBoardFilter, loadCache, matchesSearch, nextStage, saveCache, searchFilter, type Stage } from '@/lib/board'
+import { uid } from '@/lib/uid'
 import type { BoardOrder } from '@/lib/types'
 import { OrderCard } from '@/components/OrderCard'
 import { SearchBar } from '@/components/SearchBar'
@@ -35,8 +36,7 @@ export default function BoardPage() {
   const load = useCallback(async () => {
     const id = ++reqId.current
     const f = searchFilter(qRef.current, isOwner)
-    let query = supabase.from('board_orders').select('*').or('special_state.is.null,special_state.eq.on_hold')
-    if (f) query = f.op === 'eq' ? query.eq(f.col, f.value) : query.ilike(f.col, String(f.value))
+    const query = applyBoardFilter(supabase.from('board_orders').select('*'), f)
     const [o, s] = await Promise.all([
       query.order('slip_no', { ascending: false }),
       supabase.from('stages').select('id,name,position').order('position'),
@@ -67,7 +67,7 @@ export default function BoardPage() {
     let h: ReturnType<typeof setTimeout>
     const refetch = () => { clearTimeout(h); h = setTimeout(load, 300) }
     // Unique name per mount: a closing channel with the same name could be reused under StrictMode.
-    const ch = supabase.channel(`board-${crypto.randomUUID()}`)
+    const ch = supabase.channel(`board-${uid()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'order_events' }, refetch)
       .subscribe((status) => { if (status === 'SUBSCRIBED') refetch() })
     const onVisible = () => { if (document.visibilityState === 'visible') refetch() }

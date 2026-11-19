@@ -6,11 +6,13 @@ import { useT, type Key } from '@/lib/i18n'
 import { normalizeMobile } from '@/lib/mobile'
 import { todayIST } from '@/lib/deadline'
 import { whatsappLink, whatsappMessage } from '@/lib/whatsapp'
+import { uid } from '@/lib/uid'
+import { siteUrl } from '@/lib/site'
 import type { GarmentInput, NewOrderInput, PaymentMethod } from '@/lib/types'
 import { GarmentForm } from '@/components/GarmentForm'
 
 type Row = GarmentInput & { key: string } // key is client-only: React key + patch target
-const newGarment = (): Row => ({ key: crypto.randomUUID(), type: 'pant', qty: 1, measurements: {} })
+const newGarment = (): Row => ({ key: uid(), type: 'pant', qty: 1, measurements: {} })
 const addDays = (s: string, n: number) => {
   const [y, m, d] = s.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10)
@@ -88,7 +90,7 @@ export default function NewOrderPage() {
   if (done) {
     const text = whatsappMessage('created', lang, {
       shopName: shop.name, slipNo: done.slip_no, customerName: done.name, garmentSummary: done.gs, dueDate: done.due,
-      balance: done.balance, trackingUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/t/${done.tracking_token}`,
+      balance: done.balance, trackingUrl: `${siteUrl()}/t/${done.tracking_token}`,
     })
     return (
       <main className="flex flex-col items-center gap-6 pt-12 text-center">

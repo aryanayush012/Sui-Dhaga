@@ -5,4 +5,4 @@ export function normalizeMobile(input: string): string | null {
   return /^[6-9]\d{9}$/.test(d) ? d : null
 }
 
-export const mobileToEmail = (mobile: string) => `${mobile}@users.suidhaga.app`
+export const mobileToEmail = (mobile: string) => `${mobile}@users.sui-dhaga.invalid`

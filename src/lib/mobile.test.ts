@@ -12,4 +12,4 @@ describe('normalizeMobile', () => {
     'rejects %s', (input) => expect(normalizeMobile(input)).toBeNull())
 })
 it('mobileToEmail', () =>
-  expect(mobileToEmail('9876543210')).toBe('9876543210@users.suidhaga.app'))
+  expect(mobileToEmail('9876543210')).toBe('9876543210@users.sui-dhaga.invalid'))

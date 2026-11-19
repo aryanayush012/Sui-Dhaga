@@ -1,5 +1,5 @@
 // Bump CACHE when this file's strategy changes; activate deletes older caches.
-const CACHE = 'sui-dhaga-v1'
+const CACHE = 'sui-dhaga-v1' // must equal SW_CACHE in src/lib/board.ts (logout deletes it)
 
 self.addEventListener('install', () => {
   self.skipWaiting()

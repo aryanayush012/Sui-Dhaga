@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/session'
+import { clearDeviceData } from '@/lib/board'
 import { useT } from '@/lib/i18n'
 import { PhotoInput } from '@/components/PhotoInput'
 
@@ -63,7 +64,7 @@ export default function SettingsPage() {
         </form>
       )}
       <button
-        onClick={async () => { await supabase.auth.signOut(); router.replace('/login'); router.refresh() }}
+        onClick={async () => { await clearDeviceData(); await supabase.auth.signOut(); router.replace('/login'); router.refresh() }}
         className={`${btn} border-line bg-white`}>
         {t('settings.logout')}
       </button>

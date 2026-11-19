@@ -9,6 +9,8 @@ import { normalizeMobile } from '@/lib/mobile'
 import { whatsappLink, whatsappMessage } from '@/lib/whatsapp'
 import { eventText, parsePayment, parseTotal, type EventRow } from '@/lib/orderDetail'
 import type { Stage } from '@/lib/board'
+import { uid } from '@/lib/uid'
+import { siteUrl } from '@/lib/site'
 import type { BoardOrder, CommKind, GarmentInput, PaymentMethod } from '@/lib/types'
 import { DeadlineChip } from '@/components/DeadlineChip'
 import { GarmentForm } from '@/components/GarmentForm'
@@ -25,7 +27,6 @@ const input = 'min-h-12 w-full rounded-lg border border-line bg-white px-3 text-
 const btn = 'flex min-h-12 items-center justify-center rounded-lg border border-line bg-white px-4 text-lg disabled:opacity-50'
 const primary = 'flex min-h-12 items-center justify-center rounded-lg bg-accent px-4 text-lg text-white disabled:opacity-50'
 const sec = 'space-y-2 rounded-xl border border-line bg-white p-3'
-const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
 
 function SheetBox({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   const { t } = useT()
@@ -88,7 +89,7 @@ export default function OrderDetailPage() {
   const [payNote, setPayNote] = useState('')
   const [totalIn, setTotalIn] = useState('')
   const [editG, setEditG] = useState<GarmentInput | null>(null)
-  const [gBusy, setGBusy] = useState(false)
+  const [gBusy, setGBusy] = useState(0) // counter: two PhotoInputs can upload at once
 
   const load = useCallback(async () => {
     const [b, g, e, m, s, n, p] = await Promise.all([
@@ -116,7 +117,7 @@ export default function OrderDetailPage() {
     let h: ReturnType<typeof setTimeout>
     const refetch = () => { clearTimeout(h); h = setTimeout(load, 300) }
     // Unique name per mount (same reason as the board).
-    const ch = supabase.channel(`order-${crypto.randomUUID()}`)
+    const ch = supabase.channel(`order-${uid()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'order_events', filter: `order_id=eq.${id}` }, refetch)
       .subscribe()
     return () => { clearTimeout(h); supabase.removeChannel(ch) }
@@ -408,9 +409,9 @@ export default function OrderDetailPage() {
       )}
       {sheet === 'garment' && editG && (
         <SheetBox title={t('order.garments')} onClose={() => { setSheet(null); setEditG(null) }}>
-          <GarmentForm value={editG} onBusy={setGBusy} onChange={(p) => setEditG((prev) => (prev ? { ...prev, ...p } : prev))} />
+          <GarmentForm value={editG} onBusy={(b) => setGBusy((n) => n + (b ? 1 : -1))} onChange={(p) => setEditG((prev) => (prev ? { ...prev, ...p } : prev))} />
           {err && <p role="alert" className="text-red-600">{err}</p>}
-          <button className={`${primary} w-full`} disabled={busy || gBusy} onClick={saveGarment}>{gBusy ? t('photo.uploading') : t('od.save')}</button>
+          <button className={`${primary} w-full`} disabled={busy || gBusy > 0} onClick={saveGarment}>{gBusy > 0 ? t('photo.uploading') : t('od.save')}</button>
           {editG.id && garments.length > 1 && <button className={`${btn} w-full text-red-600`} disabled={busy} onClick={deleteGarment}>{t('od.delete')}</button>}
         </SheetBox>
       )}

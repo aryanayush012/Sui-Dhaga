@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { uid } from './uid'
 
 const MAX_SIDE = 1280
 
@@ -21,7 +22,7 @@ export async function compressImage(file: File): Promise<Blob> {
 
 // Photos are viewed via createSignedUrl on the signed-in user's client (storage RLS applies).
 export async function uploadPhoto(client: SupabaseClient, shopId: string, blob: Blob): Promise<string> {
-  const path = `${shopId}/${crypto.randomUUID()}.jpg`
+  const path = `${shopId}/${uid()}.jpg`
   const { error } = await client.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg' })
   if (error) throw new Error(error.message)
   return path

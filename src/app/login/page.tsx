@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { mobileToEmail, normalizeMobile } from '@/lib/mobile'
 import { useT } from '@/lib/i18n'
+import { clearDeviceData } from '@/lib/board'
 
 const field = 'block w-full min-h-12 rounded-lg border border-line bg-white px-3 text-lg'
 
@@ -18,7 +19,7 @@ function LoginForm() {
 
   // Session without an active member row: the layout sent us here; drop the session.
   useEffect(() => {
-    if (inactive) void createBrowserSupabase().auth.signOut()
+    if (inactive) void clearDeviceData().then(() => createBrowserSupabase().auth.signOut())
   }, [inactive])
 
   async function submit(e: React.FormEvent) {
