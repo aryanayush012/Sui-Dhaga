@@ -57,7 +57,7 @@ export async function addEmployeeCore(
 ): Promise<Result> {
   try {
     const shopId = await assertOwnerOf(caller)
-    await createEmployee(admin, { shopId, ...input })
+    await createEmployee(admin, { shopId, name: input.name, mobile: input.mobile, pin: input.pin })
     return { ok: true }
   } catch (e) { return fail(e) }
 }

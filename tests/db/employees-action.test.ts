@@ -42,3 +42,13 @@ it('owner resets own employee PIN; cross-shop, bad pin, owner target refused', a
   await expect(signIn(a.owner.mobile, '246810')).rejects.toThrow()
   expect(await resetEmployeePinCore(e.client, admin(), e.id, '246810')).toEqual({ ok: false, error: 'not_owner' })
 })
+
+it('ignores a client-supplied shopId (no cross-shop injection)', async () => {
+  const a = await newShop(); const b = await newShop(); const m = randomMobile()
+  const input = { name: 'Evil', mobile: m, pin: '654321', shopId: b.shopId } as unknown as { name: string; mobile: string; pin: string }
+  expect(await addEmployeeCore(a.owner.client, admin(), input)).toEqual({ ok: true })
+  const { data } = await admin().from('members').select('shop_id').eq('mobile', m).single()
+  expect(data?.shop_id).toBe(a.shopId)
+  const { data: inB } = await admin().from('members').select('id').eq('shop_id', b.shopId)
+  expect(inB).toHaveLength(1)
+})
