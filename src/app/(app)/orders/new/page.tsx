@@ -9,7 +9,8 @@ import { whatsappLink, whatsappMessage } from '@/lib/whatsapp'
 import type { GarmentInput, NewOrderInput, PaymentMethod } from '@/lib/types'
 import { GarmentForm } from '@/components/GarmentForm'
 
-const newGarment = (): GarmentInput => ({ type: 'pant', qty: 1, measurements: {} })
+type Row = GarmentInput & { key: string } // key is client-only: React key + patch target
+const newGarment = (): Row => ({ key: crypto.randomUUID(), type: 'pant', qty: 1, measurements: {} })
 const addDays = (s: string, n: number) => {
   const [y, m, d] = s.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10)
@@ -34,7 +35,7 @@ export default function NewOrderPage() {
   const [mobile, setMobile] = useState('')
   const [due, setDue] = useState(() => addDays(todayIST(), 7))
   const [rack, setRack] = useState('')
-  const [garments, setGarments] = useState<GarmentInput[]>([newGarment()])
+  const [garments, setGarments] = useState<Row[]>(() => [newGarment()])
   const [assignee, setAssignee] = useState('')
   const [total, setTotal] = useState('')
   const [advance, setAdvance] = useState('')
@@ -66,7 +67,9 @@ export default function NewOrderPage() {
       customer_name: name.trim(), customer_mobile: m, due_date: due,
       rack: rack.trim() || null, assignee_id: assignee || null, total_amount: tot, notes: notes.trim() || null,
       garments: garments.map((g) => ({
-        ...g, measurements: Object.fromEntries(Object.entries(g.measurements ?? {}).filter(([, v]) => v.trim() !== '')),
+        type: g.type, qty: g.qty, cloth_photo_path: g.cloth_photo_path, measurement_photo_path: g.measurement_photo_path,
+        instructions: g.instructions,
+        measurements: Object.fromEntries(Object.entries(g.measurements ?? {}).filter(([, v]) => v.trim() !== '')),
       })),
       advance: adv ? { amount: adv, method } : null,
     }
@@ -82,24 +85,20 @@ export default function NewOrderPage() {
     setDone({ ...r, mobile: m, name: payload.customer_name, due, gs: summary(garments), balance: tot === null ? null : tot - (adv ?? 0) })
   }
 
-  async function sendWhatsapp() {
-    if (!done) return
-    await supabase.rpc('record_whatsapp_send', { p_order_id: done.id, p_kind: 'created' })
+  if (done) {
     const text = whatsappMessage('created', lang, {
       shopName: shop.name, slipNo: done.slip_no, customerName: done.name, garmentSummary: done.gs, dueDate: done.due,
       balance: done.balance, trackingUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/t/${done.tracking_token}`,
     })
-    window.open(whatsappLink(done.mobile, text), '_blank')
-    router.push('/')
-  }
-
-  if (done) {
     return (
       <main className="flex flex-col items-center gap-6 pt-12 text-center">
         <p className="text-muted">{t('order.saved')}</p>
         <p className="text-sm text-muted">{t('order.slip')}</p>
         <p className="text-7xl font-bold">#{done.slip_no}</p>
-        <button onClick={sendWhatsapp} className="min-h-14 w-full rounded-lg bg-accent text-xl text-white">{t('order.whatsapp')}</button>
+        {/* Plain link: opens inside the tap gesture. Send is logged fire-and-forget. */}
+        <a href={whatsappLink(done.mobile, text)} target="_blank" rel="noopener noreferrer"
+          onClick={() => { void supabase.rpc('record_whatsapp_send', { p_order_id: done.id, p_kind: 'created' }) }}
+          className="flex min-h-14 w-full items-center justify-center rounded-lg bg-accent text-xl text-white">{t('order.whatsapp')}</a>
         <button onClick={() => router.push('/')} className="min-h-12 w-full rounded-lg border border-line bg-white text-lg">{t('order.skip')}</button>
       </main>
     )
@@ -121,12 +120,12 @@ export default function NewOrderPage() {
       <input className={input} placeholder={t('order.rack')} aria-label={t('order.rack')} value={rack} onChange={(e) => setRack(e.target.value)} />
 
       <h2 className="font-semibold">{t('order.garments')}</h2>
-      {garments.map((g, i) => (
-        <GarmentForm key={i} value={g} onBusy={onBusy}
-          onChange={(v) => setGarments(garments.map((x, j) => (j === i ? v : x)))}
-          onRemove={garments.length > 1 ? () => setGarments(garments.filter((_, j) => j !== i)) : undefined} />
+      {garments.map((g) => (
+        <GarmentForm key={g.key} value={g} onBusy={onBusy}
+          onChange={(p) => setGarments((prev) => prev.map((x) => (x.key === g.key ? { ...x, ...p } : x)))}
+          onRemove={garments.length > 1 ? () => setGarments((prev) => prev.filter((x) => x.key !== g.key)) : undefined} />
       ))}
-      <button type="button" onClick={() => setGarments([...garments, newGarment()])} className="min-h-12 rounded-lg border border-line bg-white text-lg">{t('order.add_garment')}</button>
+      <button type="button" onClick={() => setGarments((prev) => [...prev, newGarment()])} className="min-h-12 rounded-lg border border-line bg-white text-lg">{t('order.add_garment')}</button>
 
       <details className="rounded-xl border border-line bg-white p-3">
         <summary className="min-h-12 cursor-pointer py-2 text-lg">{t('order.more')}</summary>

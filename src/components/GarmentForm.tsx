@@ -5,12 +5,12 @@ import { GARMENT_FIELDS, GARMENT_TYPES } from '@/lib/garments'
 import type { GarmentInput } from '@/lib/types'
 import { PhotoInput } from './PhotoInput'
 
-type Props = { value: GarmentInput; onChange: (g: GarmentInput) => void; onRemove?: () => void; onBusy?: (busy: boolean) => void }
+type Props = { value: GarmentInput; onChange: (patch: Partial<GarmentInput>) => void; onRemove?: () => void; onBusy?: (busy: boolean) => void }
 
 export function GarmentForm({ value: g, onChange, onRemove, onBusy }: Props) {
   const { t } = useT()
   const [mode, setMode] = useState<'photo' | 'type'>('photo')
-  const set = (p: Partial<GarmentInput>) => onChange({ ...g, ...p })
+  const set = onChange
   const fields = GARMENT_FIELDS[g.type]
   const seg = (on: boolean) => `min-h-12 flex-1 rounded-lg border px-3 text-lg ${on ? 'border-accent bg-accent text-white' : 'border-line bg-white'}`
   return (
@@ -18,7 +18,11 @@ export function GarmentForm({ value: g, onChange, onRemove, onBusy }: Props) {
       <div className="flex flex-wrap gap-2">
         {GARMENT_TYPES.map((ty) => (
           <button key={ty} type="button" aria-pressed={g.type === ty} className={seg(g.type === ty)}
-            onClick={() => onChange({ ...g, type: ty, measurements: {} })}>{t(`garment.${ty}` as Key)}</button>
+            onClick={() => {
+              if (ty === g.type) return
+              const keep = GARMENT_FIELDS[ty]
+              set({ type: ty, measurements: Object.fromEntries(Object.entries(g.measurements ?? {}).filter(([k]) => keep.includes(k))) })
+            }}>{t(`garment.${ty}` as Key)}</button>
         ))}
       </div>
       <div className="flex items-center gap-3">
