@@ -1,0 +1,25 @@
+import type { en } from './en'
+
+export const hi = {
+  'app.name': 'सुई-धागा',
+  'login.title': 'लॉगिन करें',
+  'login.mobile': 'मोबाइल नंबर',
+  'login.password': 'पासवर्ड / पिन',
+  'login.submit': 'लॉगिन करें',
+  'login.failed': 'मोबाइल नंबर या पासवर्ड गलत है। फिर से कोशिश करें।',
+  'login.inactive': 'यह खाता बंद है। कृपया दुकान मालिक से पूछें।',
+  'login.wait': 'रुकिए...',
+  'nav.board': 'बोर्ड',
+  'nav.new': 'नया ऑर्डर',
+  'nav.employees': 'कारीगर',
+  'nav.settings': 'सेटिंग',
+  'board.title': 'ऑर्डर',
+  'board.due': 'डिलीवरी {date}',
+  'settings.title': 'सेटिंग',
+  'settings.language': 'भाषा',
+  'settings.logout': 'लॉग आउट',
+  'stage.cutting': 'कटाई',
+  'stage.stitching': 'सिलाई',
+  'stage.ironing': 'प्रेस',
+  'stage.ready': 'तैयार',
+} satisfies Record<keyof typeof en, string>

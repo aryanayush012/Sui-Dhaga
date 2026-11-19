@@ -3,6 +3,7 @@ import { loadEnv } from 'vite'
 import path from 'node:path'
 
 export default defineConfig(({ mode }) => ({
+  oxc: { jsx: { runtime: 'automatic' } },
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
   test: {
     env: loadEnv(mode, process.cwd(), ''),
