@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run src",
-    "test:db": "vitest run tests/db",
+    "test:db": "vitest run tests/db --no-file-parallelism",
     "e2e": "playwright test",
     "db:types": "node --env-file=.env.local scripts/supabase-db.mjs gen types typescript > src/lib/database.types.ts",
     "db:reset": "node --env-file=.env.local scripts/supabase-db.mjs db reset --yes"
