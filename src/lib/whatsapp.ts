@@ -5,7 +5,7 @@ type Data = { shopName: string; slipNo: number; customerName: string; garmentSum
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 // ponytail: same "22 Nov" form for hi and en
-const fmtDate = (s: string) => { const [, m, d] = s.split('-').map(Number); return `${d} ${MONTHS[m - 1]}` }
+export const fmtDate = (s: string) => { const [, m, d] = s.split('-').map(Number); return `${d} ${MONTHS[m - 1]}` }
 
 export function whatsappMessage(kind: CommKind, lang: 'hi' | 'en', d: Data): string {
   const due = fmtDate(d.dueDate)

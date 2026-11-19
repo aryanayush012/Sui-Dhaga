@@ -191,4 +191,9 @@ export const en = {
   'settings.save': 'Save',
   'settings.saved': 'Saved',
   'settings.failed': 'Could not save. Please try again.',
+  'track.ready': 'Ready for collection',
+  'track.inactive': 'This link is not active',
+  'track.inactive_hint': 'Please ask the shop for a new link.',
+  'track.order': 'Order #{n}',
+  'track.expected': 'Expected by {date}',
 } as const satisfies Record<string, string>

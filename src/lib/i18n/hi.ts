@@ -193,4 +193,9 @@ export const hi = {
   'settings.save': 'सेव करें',
   'settings.saved': 'सेव हो गया',
   'settings.failed': 'सेव नहीं हो सका। फिर कोशिश करें।',
+  'track.ready': 'लेने के लिए तैयार',
+  'track.inactive': 'यह लिंक चालू नहीं है',
+  'track.inactive_hint': 'कृपया दुकान से नया लिंक माँगें।',
+  'track.order': 'ऑर्डर #{n}',
+  'track.expected': '{date} तक तैयार होगा',
 } satisfies Record<keyof typeof en, string>

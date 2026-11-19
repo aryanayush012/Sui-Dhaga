@@ -1,23 +1,9 @@
 'use client'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { en } from './en'
-import { hi } from './hi'
+import { translate, type Lang, type Key, type Vars } from './translate'
 
-export type Lang = 'en' | 'hi'
-export type Key = keyof typeof en
-type Vars = Record<string, string | number>
-
-const dict: Record<Lang, Record<Key, string>> = { en, hi }
-
-export function translate(lang: Lang, key: Key, vars?: Vars): string {
-  const s = dict[lang][key] ?? en[key]
-  return vars ? s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : s
-}
-
-const STAGES: Record<string, Key> = {
-  Cutting: 'stage.cutting', Stitching: 'stage.stitching', Ironing: 'stage.ironing', Ready: 'stage.ready',
-}
-export const stageLabel = (name: string, t: (k: Key) => string) => (STAGES[name] ? t(STAGES[name]) : name)
+export { translate, stageLabel } from './translate'
+export type { Lang, Key } from './translate'
 
 type Ctx = { t: (key: Key, vars?: Vars) => string; lang: Lang; setLang: (l: Lang) => void }
 const I18nCtx = createContext<Ctx | null>(null)
