@@ -335,11 +335,17 @@ isOneToOne: false
 "delete_garment":
 { Args: { "p_garment_id": string }; Returns: undefined
                            },
+"get_tracking":
+{ Args: { "p_token": string }; Returns: Json
+                           },
 "is_owner":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "move_order":
 { Args: { "p_order_id": string,"p_stage_id": string }; Returns: undefined
+                           },
+"record_whatsapp_send":
+{ Args: { "p_kind": string,"p_order_id": string }; Returns: undefined
                            },
 "save_garment":
 { Args: { "p": Json,"p_order_id": string }; Returns: string
@@ -355,6 +361,9 @@ isOneToOne: false
                            },
 "set_total":
 { Args: { "p_order_id": string,"p_total": number }; Returns: undefined
+                           },
+"set_tracking_enabled":
+{ Args: { "p_enabled": boolean,"p_order_id": string }; Returns: undefined
                            },
 "update_order_info":
 { Args: { "p_mobile": string,"p_name": string,"p_notes": string,"p_order_id": string }; Returns: undefined

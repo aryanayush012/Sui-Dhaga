@@ -27,7 +27,7 @@ describe('create_order', () => {
     expect(data.garment_summary).toBe('1 pant')
     expect(data.is_ready).toBe(false)
     expect(data.paid_amount).toBe(0)
-    expect(data.comm_kind).toBeNull(); expect(data.communicated).toBe(false)
+    expect(data.comm_kind).toBe('created'); expect(data.communicated).toBe(false)
     expect(o1.tracking_token).toMatch(/^[A-Za-z0-9_-]{32}$/)
     expect(data.tracking_token).toBe(o1.tracking_token)
   })
