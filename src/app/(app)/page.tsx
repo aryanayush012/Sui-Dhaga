@@ -65,11 +65,20 @@ export default function BoardPage() {
 
   useEffect(() => {
     let h: ReturnType<typeof setTimeout>
-    const ch = supabase.channel('board-events')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'order_events' },
-        () => { clearTimeout(h); h = setTimeout(load, 300) })
-      .subscribe()
-    return () => { clearTimeout(h); supabase.removeChannel(ch) }
+    const refetch = () => { clearTimeout(h); h = setTimeout(load, 300) }
+    // Unique name per mount: a closing channel with the same name could be reused under StrictMode.
+    const ch = supabase.channel(`board-${crypto.randomUUID()}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'order_events' }, refetch)
+      .subscribe((status) => { if (status === 'SUBSCRIBED') refetch() })
+    const onVisible = () => { if (document.visibilityState === 'visible') refetch() }
+    window.addEventListener('online', refetch)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearTimeout(h)
+      window.removeEventListener('online', refetch)
+      document.removeEventListener('visibilitychange', onVisible)
+      supabase.removeChannel(ch)
+    }
   }, [supabase, load])
 
   const searching = q.trim() !== ''
