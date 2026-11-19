@@ -298,6 +298,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"add_payment":
+{ Args: { "p_amount": number,"p_method": string,"p_note": string,"p_order_id": string }; Returns: string
+                           },
 "admin_create_shop":
 { Args: { "p_mobile": string,"p_name": string,"p_owner_id": string,"p_owner_name": string }; Returns: string
                            },
@@ -349,6 +352,9 @@ isOneToOne: false
                            },
 "set_special_state":
 { Args: { "p_order_id": string,"p_state": string }; Returns: undefined
+                           },
+"set_total":
+{ Args: { "p_order_id": string,"p_total": number }; Returns: undefined
                            },
 "update_order_info":
 { Args: { "p_mobile": string,"p_name": string,"p_notes": string,"p_order_id": string }; Returns: undefined
