@@ -4,6 +4,7 @@ import { createShop } from '@/lib/admin/shops'
 import { createEmployee } from '@/lib/admin/members'
 import { mobileToEmail } from '@/lib/mobile'
 import type { Database } from '@/lib/database.types'
+import type { BoardOrder, NewOrderInput } from '@/lib/types'
 
 export const OWNER_PASSWORD = 'secret1'
 export const EMPLOYEE_PIN = '123456'
@@ -37,4 +38,32 @@ export async function newEmployee(shopId: string) {
   const mobile = randomMobile()
   const { id } = await createEmployee(admin(), { shopId, name: 'Karigar', mobile, pin: EMPLOYEE_PIN })
   return { id, mobile, client: await signIn(mobile, EMPLOYEE_PIN) }
+}
+
+type Client = SupabaseClient<Database>
+
+// Throws Error(<rpc error message>) so tests can `.rejects.toThrow('<code>')`.
+export async function rpcOk<T = unknown>(client: Client, fn: string, args?: object): Promise<T> {
+  const { data, error } = await client.rpc(fn as never, args as never)
+  if (error) throw new Error(error.message)
+  return data as T
+}
+
+export function newOrder(ownerClient: Client, overrides: Partial<NewOrderInput> = {}) {
+  const due = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10)
+  return rpcOk<{ id: string; slip_no: number; tracking_token: string }>(ownerClient, 'create_order', {
+    p: { customer_name: 'Ramesh', customer_mobile: randomMobile(), due_date: due, garments: [{ type: 'pant', qty: 1 }], ...overrides },
+  })
+}
+
+export async function stageId(shop: { shopId: string }, name: string) {
+  const { data, error } = await admin().from('stages').select('id').eq('shop_id', shop.shopId).eq('name', name).single()
+  if (error) throw new Error(error.message)
+  return data.id
+}
+
+export async function board(client: Client, orderId: string) {
+  const { data, error } = await client.from('board_orders').select('*').eq('id', orderId).single()
+  if (error) throw new Error(error.message)
+  return data as unknown as BoardOrder
 }

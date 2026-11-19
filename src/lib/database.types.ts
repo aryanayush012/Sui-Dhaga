@@ -240,11 +240,75 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "board_orders": {
+                  Row: {
+                    "assignee_id": string | null,"assignee_name": string | null,"comm_kind": string | null,"communicated": boolean | null,"created_at": string,"customer_mobile": string | null,"customer_name": string,"due_date": string,"garment_summary": string | null,"id": string,"is_ready": boolean | null,"paid_amount": number | null,"rack": string | null,"slip_no": number,"special_state": string | null,"stage_id": string,"stage_name": string,"stage_position": number,"total_amount": number | null,"tracking_enabled": boolean,"tracking_token": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
-            "admin_create_shop":
+            "_garment_from_json":
+{ Args: { "p": Json }; Returns: {
+              "cloth_photo_path": string | null,
+"id": string,
+"instructions": string | null,
+"measurement_photo_path": string | null,
+"measurements": NonNullable<Json>,
+"order_id": string,
+"qty": number,
+"shop_id": string,
+"type": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "garments"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"_log_event":
+{ Args: { "o": Omit<Database["public"]['Tables']["orders"]['Row'], Database["public"]['Tables']["orders"]['ComputedFields']>,"p_action": string,"p_from": string,"p_to": string }; Returns: undefined
+                           },
+"_order_for_write":
+{ Args: { "p_order_id": string,"p_owner_only": boolean }; Returns: {
+              "assignee_id": string | null,
+"created_at": string,
+"created_by": string,
+"customer_mobile": string,
+"customer_name": string,
+"due_date": string,
+"id": string,
+"notes": string | null,
+"rack": string | null,
+"shop_id": string,
+"slip_no": number,
+"special_state": string | null,
+"stage_id": string,
+"total_amount": number | null,
+"tracking_enabled": boolean,
+"tracking_token": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"admin_create_shop":
 { Args: { "p_mobile": string,"p_name": string,"p_owner_id": string,"p_owner_name": string }; Returns: string
+                           },
+"assign_order":
+{ Args: { "p_member_id": string,"p_order_id": string }; Returns: undefined
+                           },
+"change_due_date":
+{ Args: { "p_due": string,"p_order_id": string }; Returns: undefined
+                           },
+"create_order":
+{ Args: { "p": Json }; Returns: Json
                            },
 "current_member":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -265,11 +329,29 @@ isOneToOne: false
 "current_shop_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"delete_garment":
+{ Args: { "p_garment_id": string }; Returns: undefined
+                           },
 "is_owner":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"move_order":
+{ Args: { "p_order_id": string,"p_stage_id": string }; Returns: undefined
+                           },
+"save_garment":
+{ Args: { "p": Json,"p_order_id": string }; Returns: string
+                           },
 "set_member_active":
 { Args: { "p_active": boolean,"p_member_id": string }; Returns: undefined
+                           },
+"set_rack":
+{ Args: { "p_order_id": string,"p_rack": string }; Returns: undefined
+                           },
+"set_special_state":
+{ Args: { "p_order_id": string,"p_state": string }; Returns: undefined
+                           },
+"update_order_info":
+{ Args: { "p_mobile": string,"p_name": string,"p_notes": string,"p_order_id": string }; Returns: undefined
                            }
           }
           Enums: {
