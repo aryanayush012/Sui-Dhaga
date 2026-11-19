@@ -9,11 +9,13 @@ export async function compressImage(file: File): Promise<Blob> {
   if (typeof OffscreenCanvas !== 'undefined') {
     const c = new OffscreenCanvas(w, h)
     c.getContext('2d')!.drawImage(bmp, 0, 0, w, h)
+    bmp.close()
     return c.convertToBlob({ type: 'image/jpeg', quality: 0.7 })
   }
   const c = document.createElement('canvas')
   c.width = w; c.height = h
   c.getContext('2d')!.drawImage(bmp, 0, 0, w, h)
+  bmp.close()
   return new Promise((res, rej) => c.toBlob(b => (b ? res(b) : rej(new Error('compress_failed'))), 'image/jpeg', 0.7))
 }
 
