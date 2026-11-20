@@ -2,50 +2,32 @@
 import Link from 'next/link'
 import { useT } from '@/lib/i18n'
 import { deadlineChip } from '@/lib/deadline'
-import { paymentSummary } from '@/lib/money'
 import type { BoardOrder } from '@/lib/types'
 import { DeadlineChip } from './DeadlineChip'
+import { Avatar } from './Avatar'
 
-export function OrderCard({ o, today, canMove, onMove }: {
-  o: BoardOrder; today: string; canMove: boolean; onMove: () => void
-}) {
+export function OrderChips({ o, today, isOwner }: { o: BoardOrder; today: string; isOwner: boolean }) {
   const { t } = useT()
-  const { balance } = paymentSummary(o.total_amount, o.paid_amount)
-  const money = balance === null ? t('board.paid_only', { n: o.paid_amount }) : t('board.balance_due', { n: balance })
   return (
-    <div className="rounded-xl border border-line bg-white p-3">
-      <Link href={`/orders/${o.id}`} className="block">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <span className="text-3xl font-bold">#{o.slip_no}</span>
-            <span className="ml-2 font-semibold">{o.customer_name}</span>
-          </div>
-          <div className="shrink-0 rounded-lg bg-accent px-3 py-1 text-xl font-bold text-white" aria-label={t('board.rack')}>
-            {o.rack || '—'}
-          </div>
-        </div>
-        <p className="text-muted">{o.garment_summary}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-base">
-          <span>{t('board.due', { date: o.due_date })}</span>
-          <DeadlineChip kind={deadlineChip(o, today)} />
-          {o.special_state === 'on_hold' && <span className="rounded-full bg-gray-200 px-2 py-0.5 text-sm font-semibold">{t('board.hold')}</span>}
-          {(o.special_state === 'delivered' || o.special_state === 'cancelled') && (
-            <span className={`rounded-full px-2 py-0.5 text-sm font-semibold ${o.special_state === 'delivered' ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'}`}>
-              {t(o.special_state === 'delivered' ? 'od.state_delivered' : 'od.state_cancelled')}
-            </span>
-          )}
-          {o.assignee_name && <span className="text-muted">{o.assignee_name}</span>}
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-base">
-          <span className="font-semibold">{money}</span>
-          {o.communicated && o.comm_kind && <span className="text-accent">✓ {t('board.communicated')}</span>}
-        </div>
-      </Link>
-      {canMove && (
-        <button onClick={onMove} className="mt-2 min-h-11 w-full rounded-lg border border-accent font-bold text-accent">
-          {t('board.move')}
-        </button>
+    <span className="flex flex-wrap items-center gap-1.5 text-xs">
+      <span className="font-semibold text-[#42526E]">#{o.slip_no}</span>
+      {o.rack && <span aria-label={t('board.rack')} className="rounded bg-[#EAE6FF] px-1.5 py-0.5 font-semibold text-[#403294]">{o.rack}</span>}
+      <DeadlineChip kind={deadlineChip(o, today)} />
+      {isOwner && o.comm_kind !== null && !o.communicated && (
+        <span role="img" aria-label={t('board.communicated')} className="size-2.5 rounded-full bg-[#00875A]" />
       )}
-    </div>
+    </span>
+  )
+}
+
+export function OrderCard({ o, today, isOwner }: { o: BoardOrder; today: string; isOwner: boolean }) {
+  return (
+    <Link href={`/orders/${o.id}`} className="flex min-h-11 items-start justify-between gap-2 rounded bg-white p-3 shadow-[0_1px_1px_rgba(9,30,66,.25)]">
+      <span className="min-w-0 space-y-1.5">
+        <span className="block truncate text-sm text-[#172B4D]"><b>{o.customer_name}</b> · {o.garment_summary}</span>
+        <OrderChips o={o} today={today} isOwner={isOwner} />
+      </span>
+      <Avatar name={o.assignee_name} />
+    </Link>
   )
 }

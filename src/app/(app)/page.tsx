@@ -1,20 +1,24 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from '@/lib/session'
-import { useT, stageLabel, type Key } from '@/lib/i18n'
+import { useT } from '@/lib/i18n'
 import { todayIST } from '@/lib/deadline'
-import { applyBoardFilter, loadCache, matchesSearch, nextStage, saveCache, searchFilter, type Stage } from '@/lib/board'
+import { applyBoardFilter, loadCache, matchesSearch, saveCache, searchFilter, type Stage } from '@/lib/board'
 import { uid } from '@/lib/uid'
 import type { BoardOrder } from '@/lib/types'
-import { OrderCard } from '@/components/OrderCard'
-import { SearchBar } from '@/components/SearchBar'
-import { StageTabs } from '@/components/StageTabs'
-
-const HOLD = 'on_hold'
-const KNOWN = ['forbidden', 'order_closed', 'not_found', 'not_member', 'invalid_input']
+import { parseCreated, readView, sortByDue, writeView, type View } from '@/lib/home'
+import { BoardColumns } from '@/components/BoardColumns'
+import { ListRow } from '@/components/ListRow'
 
 export default function BoardPage() {
-  const { member, supabase } = useSession()
+  return <Suspense><Home /></Suspense> // useSearchParams needs a boundary for static prerender
+}
+
+function Home() {
+  const { member, shop, supabase } = useSession()
+  const router = useRouter()
+  const created = parseCreated(useSearchParams())
   const { t } = useT()
   const isOwner = member.role === 'owner'
   const [rows, setRows] = useState<BoardOrder[]>([])
@@ -22,16 +26,14 @@ export default function BoardPage() {
   const [loaded, setLoaded] = useState(false)
   const [offline, setOffline] = useState(false)
   const [q, setQ] = useState('')
-  const [tab, setTab] = useState<string | null>(null)
+  const [view, setView] = useState<View>('board')
   const [mine, setMine] = useState(false)
-  const [err, setErr] = useState('')
-  const [rackFor, setRackFor] = useState<{ o: BoardOrder; stage: Stage } | null>(null)
-  const [rackVal, setRackVal] = useState('')
-  const [busy, setBusy] = useState(false)
   const qRef = useRef(q)
   qRef.current = q
   const reqId = useRef(0)
   const today = todayIST()
+  useEffect(() => setView(readView()), []) // after mount: SSR renders the default
+  const pick = (v: View) => { setView(v); writeView(v) }
 
   const load = useCallback(async () => {
     const id = ++reqId.current
@@ -82,71 +84,44 @@ export default function BoardPage() {
   }, [supabase, load])
 
   const searching = q.trim() !== ''
-  const active = tab ?? stages[0]?.id ?? ''
-  const base = mine ? rows.filter((r) => r.assignee_id === member.id) : rows
-  const inTab = (r: BoardOrder, id: string) => (id === HOLD ? r.special_state === HOLD : r.special_state === null && r.stage_id === id)
-  const tabs = [
-    ...stages.map((s) => ({ id: s.id, label: stageLabel(s.name, t), count: base.filter((r) => inTab(r, s.id)).length })),
-    { id: HOLD, label: t('board.hold'), count: base.filter((r) => inTab(r, HOLD)).length },
-  ]
-  const shown = searching ? base : base.filter((r) => inTab(r, active))
+  const shown = mine ? rows.filter((r) => r.assignee_id === member.id) : rows
 
-  const showErr = (m: string) => setErr(t(KNOWN.includes(m) ? (`error.${m}` as Key) : 'error.generic'))
-  async function doMove(o: BoardOrder, stage: Stage, rack?: string) {
-    setBusy(true); setErr('')
-    if (rack !== undefined) {
-      const r = await supabase.rpc('set_rack', { p_order_id: o.id, p_rack: rack })
-      if (r.error) { setBusy(false); return showErr(r.error.message) }
-    }
-    const m = await supabase.rpc('move_order', { p_order_id: o.id, p_stage_id: stage.id })
-    setBusy(false)
-    if (m.error) return showErr(m.error.message)
-    setRackFor(null); setRackVal('')
-    load()
-  }
-  function onMove(o: BoardOrder) {
-    const n = nextStage(stages, o)
-    if (!n) return
-    const intoLast = !nextStage(stages, { stage_position: n.position })
-    if (intoLast && !o.rack?.trim()) { setRackFor({ o, stage: n }); setRackVal(''); return }
-    doMove(o, n)
-  }
-
+  const seg = (v: View) => `min-h-11 flex-1 px-3 text-sm font-semibold ${view === v ? 'bg-[#0052CC] text-white' : 'bg-white text-[#42526E]'}`
   return (
     <main className="space-y-3">
+      {created && (
+        <div role="status" className="flex items-center justify-between gap-2 rounded bg-[#E3FCEF] p-2 text-[#006644]">
+          <span className="font-semibold">{t('banner.created', { n: created.slip })}</span>
+          <span className="flex items-center gap-1">
+            {created.wa && <a href={created.wa} target="_blank" rel="noopener noreferrer" aria-label={t('banner.whatsapp')}
+              className="flex min-h-11 min-w-11 items-center justify-center text-lg">💬</a>}
+            <button onClick={() => router.replace('/')} aria-label={t('banner.dismiss')} className="min-h-11 min-w-11 text-lg">✕</button>
+          </span>
+        </div>
+      )}
       {offline && <p role="status" className="rounded-lg bg-amber-100 p-2 text-amber-900">{t('board.offline')}</p>}
-      <SearchBar value={q} onChange={setQ} />
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="truncate text-lg font-bold text-[#172B4D]">{shop.name}</h1>
+        <div role="group" className="flex shrink-0 overflow-hidden rounded border border-[#DFE1E6]">
+          <button aria-pressed={view === 'board'} onClick={() => pick('board')} className={seg('board')}>{t('home.board')}</button>
+          <button aria-pressed={view === 'list'} onClick={() => pick('list')} className={seg('list')}>{t('home.list')}</button>
+        </div>
+      </div>
+      <input type="search" value={q} onChange={(e) => setQ(e.target.value)}
+        placeholder={t('board.search')} aria-label={t('board.search')}
+        className="min-h-11 w-full rounded-lg border border-line bg-white px-3" />
       {!isOwner && (
         <label className="flex min-h-11 items-center gap-2">
           <input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} className="size-5" />
           {t('board.mine')}
         </label>
       )}
-      {!searching && <StageTabs tabs={tabs} active={active} onChange={setTab} />}
-      {err && !rackFor && <p role="alert" className="text-red-600">{err}</p>}
-      {loaded && shown.length === 0 && <p className="text-muted">{t('board.empty')}</p>}
-      <div className="space-y-3">
-        {shown.map((o) => (
-          <OrderCard key={o.id} o={o} today={today} onMove={() => onMove(o)}
-            canMove={!offline && !busy && o.special_state === null && !!nextStage(stages, o)
-              && (isOwner || o.assignee_id === null || o.assignee_id === member.id)} />
-        ))}
-      </div>
-      {rackFor && (
-        <div className="fixed inset-0 z-20 flex items-end bg-black/40" role="dialog" aria-modal="true">
-          <form className="w-full space-y-3 rounded-t-2xl bg-white p-4 pb-8"
-            onSubmit={(e) => { e.preventDefault(); if (rackVal.trim()) doMove(rackFor.o, rackFor.stage, rackVal.trim()) }}>
-            <p className="font-bold">#{rackFor.o.slip_no} — {t('board.rack_prompt')}</p>
-            <input autoFocus value={rackVal} onChange={(e) => setRackVal(e.target.value)} aria-label={t('board.rack')}
-              className="min-h-11 w-full rounded-lg border border-line px-3" />
-            {err && <p role="alert" className="text-red-600">{err}</p>}
-            <div className="flex gap-2">
-              <button type="button" onClick={() => { setRackFor(null); setErr('') }} className="min-h-11 flex-1 rounded-lg border border-line">{t('board.cancel')}</button>
-              <button type="submit" disabled={busy || !rackVal.trim()} className="min-h-11 flex-1 rounded-lg bg-accent font-bold text-white disabled:opacity-50">{t('board.rack_save')}</button>
-            </div>
-          </form>
-        </div>
-      )}
+      {loaded && (searching || view === 'list') && shown.length === 0 && <p className="text-muted">{t('board.empty')}</p>}
+      {searching || view === 'list'
+        ? <div className="overflow-hidden rounded border border-[#DFE1E6]">
+            {sortByDue(shown).map((o) => <ListRow key={o.id} o={o} today={today} isOwner={isOwner} stages={stages} />)}
+          </div>
+        : <BoardColumns rows={shown} stages={stages} today={today} isOwner={isOwner} />}
     </main>
   )
 }
