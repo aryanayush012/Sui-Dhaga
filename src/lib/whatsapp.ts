@@ -29,3 +29,17 @@ export function whatsappMessage(kind: CommKind, lang: 'hi' | 'en', d: Data): str
 
 export const whatsappLink = (mobile: string, text: string) =>
   `https://wa.me/91${mobile}?text=${encodeURIComponent(text)}`
+
+export const isPhone = (ua = typeof navigator === 'undefined' ? '' : navigator.userAgent) => /Android|iPhone|iPad|iPod/i.test(ua)
+
+export const appLink = (waMe: string) => waMe.replace(/^https:\/\/wa\.me\/(\d+)\?text=/, 'whatsapp://send?phone=$1&text=')
+
+type Win = { location: { href: string }; open: (url: string, target: string) => unknown }
+
+// Phones: Chrome on Android silently drops the hand-off to the WhatsApp app from a *new* tab, so open the
+// whatsapp:// app link in the same tab (never unloads the page, so in-flight saves finish).
+// Laptops: wa.me in a new tab. Call synchronously inside the tap. Returns whether WhatsApp was opened.
+export function openWhatsApp(waMe: string, phone = isPhone(), win: Win = window): boolean {
+  if (phone) { win.location.href = appLink(waMe); return true }
+  return !!win.open(waMe, '_blank')
+}

@@ -93,7 +93,7 @@ function Home() {
         <div role="status" className="flex items-center justify-between gap-2 rounded bg-[#E3FCEF] p-2 text-[#006644]">
           <span className="font-semibold">{t('banner.created', { n: created.slip })}</span>
           <span className="flex items-center gap-1">
-            {created.wa && <a href={created.wa} target="_blank" rel="noopener noreferrer" aria-label={t('banner.whatsapp')}
+            {created.wa && <a href={created.wa} target={created.wa.startsWith('https:') ? '_blank' : undefined} rel="noopener noreferrer" aria-label={t('banner.whatsapp')}
               className="flex min-h-11 min-w-11 items-center justify-center text-lg">💬</a>}
             <button onClick={() => router.replace('/')} aria-label={t('banner.dismiss')} className="min-h-11 min-w-11 text-lg">✕</button>
           </span>

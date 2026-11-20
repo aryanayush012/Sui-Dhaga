@@ -5,7 +5,7 @@ import { useSession } from '@/lib/session'
 import { useT, type Key } from '@/lib/i18n'
 import { normalizeMobile } from '@/lib/mobile'
 import { todayIST } from '@/lib/deadline'
-import { whatsappLink, whatsappMessage } from '@/lib/whatsapp'
+import { appLink, isPhone, openWhatsApp, whatsappLink, whatsappMessage } from '@/lib/whatsapp'
 import { siteUrl } from '@/lib/site'
 import { parseAmount } from '@/lib/orderDetail'
 import { paymentSummary } from '@/lib/money'
@@ -55,25 +55,28 @@ export default function NewOrderPage() {
     if (totalN !== null && advN !== null && advN > totalN) { setErr(t('error.exceeds_total')); return }
     const payload = buildPayload({ name, mobile: m, due, rack, assignee, total: totalN, advance: advN, notes: '', garments: garments.length ? garments : addChip([], 'other') })
     // Must be opened synchronously in the click, before any await.
-    const w = window.open('', '_blank')
+    const phone = isPhone() // phones open the app link after create (see openWhatsApp); laptops pre-open a tab
+    const w = phone ? null : window.open('', '_blank')
     setSaving(true)
     supabase.rpc('create_order', { p: payload }).then(({ data, error }) => {
       if (error) throw error
       const r = data as { id: string; slip_no: number; tracking_token: string }
       // Order exists from here on: always navigate, whatever else fails.
-      let link: string | null = null
+      let link: string | null = null, opened = false
       try {
         link = whatsappLink(m, whatsappMessage('created', lang, {
           shopName: shop.name, slipNo: r.slip_no, customerName: payload.customer_name, garmentSummary: garmentSummary(payload.garments),
           dueDate: due, paid: advN ?? 0, balance: paymentSummary(totalN, advN ?? 0).balance, trackingUrl: `${siteUrl()}/t/${r.tracking_token}`,
         }))
-        if (w) w.location.href = link
+        if (phone) opened = openWhatsApp(link, true)
+        else if (w) { w.location.href = link; opened = true }
       } catch (e) { console.warn('whatsapp link', e) }
       // Subscribed (lazy builder) but not awaited before navigating.
       // Only when the popup actually opened; a blocked popup leaves the "not told yet" dot (banner link records nothing).
-      if (w) supabase.rpc('record_whatsapp_send', { p_order_id: r.id, p_kind: 'created' })
+      if (opened) supabase.rpc('record_whatsapp_send', { p_order_id: r.id, p_kind: 'created' })
         .then(({ error: e }) => { if (e) console.warn('record_whatsapp_send', e.message) }, (e) => console.warn('record_whatsapp_send', e))
-      router.push(`/?created=${r.slip_no}${!w && link ? `&wa=${encodeURIComponent(link)}` : ''}`)
+      // Phones always get the banner link too: the launch after the RPC may need a fresh tap.
+      router.push(`/?created=${r.slip_no}${link && (phone || !w) ? `&wa=${encodeURIComponent(phone ? appLink(link) : link)}` : ''}`)
     }).then(undefined, (e: { message?: string } | null) => {
       w?.close()
       setSaving(false)

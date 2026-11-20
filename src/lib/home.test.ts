@@ -7,6 +7,7 @@ describe('home', () => {
     expect(parseCreated(new URLSearchParams('created=42'))).toEqual({ slip: '42', wa: null })
     expect(parseCreated(new URLSearchParams('created=42&wa=' + encodeURIComponent('https://wa.me/91999?text=hi')))?.wa).toBe('https://wa.me/91999?text=hi')
     expect(parseCreated(new URLSearchParams('created=42&wa=javascript:alert(1)'))?.wa).toBeNull()
+    expect(parseCreated(new URLSearchParams('created=42&wa=' + encodeURIComponent('whatsapp://send?phone=91999&text=hi')))?.wa).toBe('whatsapp://send?phone=91999&text=hi')
     expect(parseCreated(new URLSearchParams('created=<b>'))).toBeNull()
     expect(parseCreated(new URLSearchParams(''))).toBeNull()
   })

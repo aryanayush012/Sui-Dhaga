@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { whatsappMessage, whatsappLink } from './whatsapp'
+import { describe, it, expect, vi } from 'vitest'
+import { whatsappMessage, whatsappLink, appLink, isPhone, openWhatsApp } from './whatsapp'
 
 const d = { shopName: 'Raj Tailors', slipNo: 142, customerName: 'Ramesh', garmentSummary: '2 pant',
   dueDate: '2026-11-22', paid: 200, balance: 300, trackingUrl: 'https://x/t/abc' }
@@ -33,4 +33,28 @@ describe('whatsapp', () => {
   })
   it('link encodes text', () =>
     expect(whatsappLink('9876543210', 'a b&c')).toBe('https://wa.me/919876543210?text=a%20b%26c'))
+})
+
+describe('opening WhatsApp', () => {
+  const link = 'https://wa.me/919876543210?text=a%20b%26c'
+  it('appLink turns wa.me into the whatsapp:// app link', () =>
+    expect(appLink(link)).toBe('whatsapp://send?phone=919876543210&text=a%20b%26c'))
+  it('isPhone', () => {
+    expect(isPhone('Mozilla/5.0 (Linux; Android 14; Pixel 7) Chrome/120 Mobile')).toBe(true)
+    expect(isPhone('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)')).toBe(true)
+    expect(isPhone('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120')).toBe(false)
+  })
+  it('phone: same-tab app link, reports opened', () => {
+    const win = { location: { href: '' }, open: vi.fn() }
+    expect(openWhatsApp(link, true, win)).toBe(true)
+    expect(win.location.href).toBe('whatsapp://send?phone=919876543210&text=a%20b%26c')
+    expect(win.open).not.toHaveBeenCalled()
+  })
+  it('laptop: new tab, opened only if the browser allowed it', () => {
+    const win = { location: { href: '' }, open: vi.fn(() => ({})) }
+    expect(openWhatsApp(link, false, win)).toBe(true)
+    expect(win.open).toHaveBeenCalledWith(link, '_blank')
+    win.open.mockReturnValue(null as never)
+    expect(openWhatsApp(link, false, win)).toBe(false)
+  })
 })

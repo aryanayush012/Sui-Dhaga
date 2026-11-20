@@ -13,10 +13,10 @@ export function writeView(v: View) {
 export const sortByDue = (rows: BoardOrder[]) =>
   [...rows].sort((a, b) => a.due_date.localeCompare(b.due_date) || a.slip_no - b.slip_no)
 
-// ?created=<slip>&wa=<wa.me url>. Only https://wa.me links are honoured.
+// ?created=<slip>&wa=<wa.me or whatsapp://send url>. Only those two link shapes are honoured.
 export function parseCreated(p: URLSearchParams): { slip: string; wa: string | null } | null {
   const slip = p.get('created')
   if (!slip || !/^\d{1,9}$/.test(slip)) return null
   const wa = p.get('wa')
-  return { slip, wa: wa && wa.startsWith('https://wa.me/') ? wa : null }
+  return { slip, wa: wa && (wa.startsWith('https://wa.me/') || wa.startsWith('whatsapp://send?')) ? wa : null }
 }
