@@ -220,6 +220,7 @@ export const hi = {
   'tab.measurements': 'नाप',
   'tab.history': 'इतिहास',
   'banner.created': 'ऑर्डर #{n} बन गया',
+  'board.wa_pending': 'ग्राहक को अभी बताया नहीं',
   'home.board': 'बोर्ड',
   'home.list': 'सूची',
   'banner.dismiss': 'बंद करें',

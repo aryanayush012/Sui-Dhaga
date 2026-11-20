@@ -14,7 +14,7 @@ export function OrderChips({ o, today, isOwner }: { o: BoardOrder; today: string
       {o.rack && <span aria-label={t('board.rack')} className="rounded bg-[#EAE6FF] px-1.5 py-0.5 font-semibold text-[#403294]">{o.rack}</span>}
       <DeadlineChip kind={deadlineChip(o, today)} />
       {isOwner && o.comm_kind !== null && !o.communicated && (
-        <span role="img" aria-label={t('board.communicated')} className="size-2.5 rounded-full bg-[#00875A]" />
+        <span role="img" aria-label={t('board.wa_pending')} title={t('board.wa_pending')} className="size-2.5 rounded-full bg-[#00875A]" />
       )}
     </span>
   )

@@ -218,6 +218,7 @@ export const en = {
   'tab.measurements': 'Measurements',
   'tab.history': 'History',
   'banner.created': 'Order #{n} created',
+  'board.wa_pending': 'Customer not told yet',
   'home.board': 'Board',
   'home.list': 'List',
   'banner.dismiss': 'Dismiss',
