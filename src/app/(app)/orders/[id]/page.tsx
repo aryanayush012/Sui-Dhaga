@@ -16,6 +16,7 @@ import { uid } from '@/lib/uid'
 import type { BoardOrder } from '@/lib/types'
 import { useOrderActions } from '@/lib/useOrderActions'
 import { StatusMenu } from '@/components/StatusMenu'
+import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { InlineField } from '@/components/InlineField'
 import { Garments, Measurements, type Garment } from './Garments'
 import { History } from './History'
@@ -103,13 +104,7 @@ export default function TicketPage() {
     <main className="space-y-3 pb-6">
       <div className="flex items-center gap-2">
         <span className="flex-1 text-sm font-semibold text-[#5E6C84]">#{o.slip_no}</span>
-        {wa && (
-          <a href={act.waHref} target="_blank" rel="noopener noreferrer" aria-label={t('order.whatsapp')} title={t('order.whatsapp')}
-            onClick={act.sendWhatsApp}
-            className={`relative flex size-11 items-center justify-center rounded-full ${o.communicated ? 'bg-[#F4F5F7] text-[#00875A]' : 'bg-[#00875A] text-white'}`}>
-            <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5 13.6c-.2.6-1.2 1.2-1.7 1.2-.4.1-1 .1-3.1-.8a10.5 10.5 0 0 1-4.3-3.8c-.3-.4-1-1.4-1-2.6s.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.3 0 .5l-.4.6-.3.4c-.1.1-.2.3 0 .5.2.3.7 1.2 1.6 1.9 1 .9 1.9 1.2 2.2 1.3.2.1.4.1.5-.1l.7-.9c.2-.2.4-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.2.1.6-.1 1.2Z" /></svg>
-          </a>
-        )}
+        {wa && <WhatsAppButton href={act.waHref} sent={o.communicated} onClick={act.sendWhatsApp} />}
         <Link href="/" aria-label={t('od.close')} className="flex size-11 items-center justify-center rounded text-xl text-[#42526E] hover:bg-[#F4F5F7]">✕</Link>
       </div>
       <h1 className="text-lg font-bold text-[#172B4D]">{o.customer_name} · {o.garment_summary}</h1>

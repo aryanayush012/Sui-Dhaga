@@ -35,14 +35,37 @@ test('phone: WhatsApp opens in the same tab via whatsapp:// and is recorded', as
   expect(newPages).toEqual([])
   await expect(page.locator('a[href^="whatsapp://send?phone=919876543210"]')).toHaveCount(1)
 
-  // Ticket icon on a phone: no new tab, send recorded (icon turns to the "communicated" style).
-  await page.getByText('Phone Ravi').first().tap()
-  await expect(page.getByRole('heading', { name: /Phone Ravi/ })).toBeVisible()
-  const icon = page.getByRole('link', { name: 'Send on WhatsApp' })
-  await expect(icon).toBeVisible()
-  await icon.tap()
-  await expect(icon).toHaveClass(/bg-\[#F4F5F7\]/)
+  // Card on the board: rack shown, WhatsApp ✓ (the "created" message went out), tapping it stays on the board.
+  const card = page.getByTestId('order-card').filter({ hasText: 'Phone Ravi' })
+  await expect(card).toContainText('Rack A1')
+  const sent = card.getByRole('link', { name: /Sent on WhatsApp/ })
+  await expect(sent).toBeVisible()
+  await sent.tap()
+  await expect(page).not.toHaveURL(/\/orders\//) // stayed on the board (URL may carry the banner params)
   expect(newPages).toEqual([])
-  expect(page.url()).toMatch(/\/orders\//)
+
+  // Status from the card: Unstarted → Ready opens WhatsApp (same tab), stays on the board, then shows ✓ again.
+  await card.getByRole('button', { name: /Unstarted/ }).tap()
+  await card.getByRole('button', { name: 'Ready', exact: true }).tap() // the open menu sits inside the card
+  await expect(card.getByRole('button', { name: /Ready/ })).toBeVisible()
+  await expect(card.getByRole('link', { name: /Sent on WhatsApp/ })).toBeVisible()
+  await expect(page).not.toHaveURL(/\/orders\//)
+  expect(newPages).toEqual([])
+
+  // Ready from a card with no rack: goes to the ticket with the Rack field open and the hint.
+  await page.goto('/orders/new')
+  await page.getByLabel('Customer name').fill('Phone Sita')
+  await page.getByLabel('Mobile number').fill('9876543211')
+  await page.getByRole('button', { name: 'Pant', exact: true }).tap()
+  await page.getByRole('button', { name: 'Save order' }).tap()
+  await expect(page).toHaveURL(/created=/)
+  const sita = page.getByTestId('order-card').filter({ hasText: 'Phone Sita' })
+  await expect(sita).toContainText('No rack')
+  await sita.getByRole('button', { name: /Unstarted/ }).tap()
+  await sita.getByRole('button', { name: 'Ready', exact: true }).tap()
+  await expect(page).toHaveURL(/\/orders\/[0-9a-f-]+\?rack=1$/)
+  await expect(page.getByRole('alert').filter({ hasText: /rack first/i })).toBeVisible()
+  await expect(page.locator('main input[type=text]')).toHaveCount(1) // the Rack field is in edit mode
+  expect(newPages).toEqual([])
   expect(errors).toEqual([])
 })

@@ -119,9 +119,9 @@ function Home() {
       {loaded && (searching || view === 'list') && shown.length === 0 && <p className="text-muted">{t('board.empty')}</p>}
       {searching || view === 'list'
         ? <div className="overflow-hidden rounded border border-[#DFE1E6]">
-            {sortByDue(shown).map((o) => <ListRow key={o.id} o={o} today={today} isOwner={isOwner} stages={stages} />)}
+            {sortByDue(shown).map((o) => <ListRow key={o.id} o={o} today={today} isOwner={isOwner} stages={stages} onChanged={load} />)}
           </div>
-        : <BoardColumns rows={shown} stages={stages} today={today} isOwner={isOwner} />}
+        : <BoardColumns rows={shown} stages={stages} today={today} isOwner={isOwner} onChanged={load} />}
     </main>
   )
 }

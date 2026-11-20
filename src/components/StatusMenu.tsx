@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { Lozenge } from './Lozenge'
 import type { StatusTarget } from '@/lib/status'
 import type { Tone } from '@/lib/ui'
@@ -13,11 +13,18 @@ const same = (a: StatusTarget, b: StatusTarget) => JSON.stringify(a) === JSON.st
 
 export function StatusMenu({ options, current, labelOf, toneOf, disabled, onPick }: Props) {
   const [open, setOpen] = useState(false)
-  const [right, setRight] = useState(false)
+  const [pos, setPos] = useState<CSSProperties>({})
   const trigger = useRef<HTMLButtonElement>(null)
+  // Fixed to the viewport so a scrolling board column can't clip it; flips left/up to stay on-screen at 360px.
   const toggle = () => {
     const r = trigger.current?.getBoundingClientRect()
-    setRight(!!r && r.right > window.innerWidth / 2) // keep the menu on-screen at 360px
+    if (r) {
+      const up = r.bottom + 44 * options.length + 16 > window.innerHeight && r.top > window.innerHeight / 2
+      setPos({
+        ...(r.right > window.innerWidth / 2 ? { right: window.innerWidth - r.right } : { left: r.left }),
+        ...(up ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
+      })
+    }
     setOpen((o) => !o)
   }
   return (
@@ -29,7 +36,7 @@ export function StatusMenu({ options, current, labelOf, toneOf, disabled, onPick
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <ul className={`absolute ${right ? 'right-0' : 'left-0'} z-50 mt-1 min-w-40 max-w-[calc(100vw-24px)] rounded bg-white py-1 shadow-lg ring-1 ring-black/10`}>
+          <ul style={pos} className="fixed z-50 min-w-40 max-w-[calc(100vw-24px)] rounded bg-white py-1 shadow-lg ring-1 ring-black/10">
             {options.map((o, i) => (
               <li key={i}>
                 <button type="button" disabled={disabled} aria-current={same(o, current) || undefined}
