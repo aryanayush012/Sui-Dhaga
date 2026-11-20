@@ -38,9 +38,10 @@ export function OrderCard({ o, today, isOwner, stages, onChanged, row }: Props) 
   const label = (s: StatusTarget) => { const k = statusLabelKey(s, stages); return (t(k as Key) as string | undefined) ?? k }
   const { balance } = paymentSummary(o.total_amount, o.paid_amount)
   return (
-    <div data-testid="order-card" className={row ? 'space-y-1 border-b border-[#DFE1E6] bg-white px-3 py-2' : 'space-y-1.5 rounded bg-white p-3 shadow-[0_1px_1px_rgba(9,30,66,.25)]'}>
+    <div data-testid="order-card" className={`relative ${row ? 'space-y-1 border-b border-[#DFE1E6] bg-white px-3 py-2' : 'space-y-1.5 rounded bg-white p-3 shadow-[0_1px_1px_rgba(9,30,66,.25)]'}`}>
       <div className="flex items-start gap-2">
-        <Link href={`/orders/${o.id}`} className="block min-h-11 min-w-0 flex-1 space-y-1.5">
+        {/* Stretched link: its ::after covers the whole card; the WhatsApp button and status menu (positioned, later in the DOM) sit on top. */}
+        <Link href={`/orders/${o.id}`} className="block min-h-11 min-w-0 flex-1 space-y-1.5 after:absolute after:inset-0 after:content-['']">
           <span className="block truncate text-sm text-[#172B4D]"><b>{o.customer_name}</b> · {o.garment_summary}</span>
           <OrderChips o={o} today={today} />
         </Link>

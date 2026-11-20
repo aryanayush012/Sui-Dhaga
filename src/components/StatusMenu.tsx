@@ -2,7 +2,7 @@
 import { useRef, useState, type CSSProperties } from 'react'
 import { Lozenge } from './Lozenge'
 import type { StatusTarget } from '@/lib/status'
-import type { Tone } from '@/lib/ui'
+import { menuPlacement, type Tone } from '@/lib/ui'
 
 type Props = {
   options: StatusTarget[]; current: StatusTarget
@@ -18,13 +18,7 @@ export function StatusMenu({ options, current, labelOf, toneOf, disabled, onPick
   // Fixed to the viewport so a scrolling board column can't clip it; flips left/up to stay on-screen at 360px.
   const toggle = () => {
     const r = trigger.current?.getBoundingClientRect()
-    if (r) {
-      const up = r.bottom + 44 * options.length + 16 > window.innerHeight && r.top > window.innerHeight / 2
-      setPos({
-        ...(r.right > window.innerWidth / 2 ? { right: window.innerWidth - r.right } : { left: r.left }),
-        ...(up ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
-      })
-    }
+    if (r) setPos(menuPlacement(r, window.innerWidth, window.innerHeight, options.length))
     setOpen((o) => !o)
   }
   return (
@@ -36,7 +30,7 @@ export function StatusMenu({ options, current, labelOf, toneOf, disabled, onPick
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <ul style={pos} className="fixed z-50 min-w-40 max-w-[calc(100vw-24px)] rounded bg-white py-1 shadow-lg ring-1 ring-black/10">
+          <ul style={pos} className="fixed z-50 min-w-40 max-w-[calc(100vw-24px)] overflow-y-auto rounded bg-white py-1 shadow-lg ring-1 ring-black/10">
             {options.map((o, i) => (
               <li key={i}>
                 <button type="button" disabled={disabled} aria-current={same(o, current) || undefined}

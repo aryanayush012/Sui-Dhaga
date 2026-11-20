@@ -61,6 +61,12 @@ test('phone: WhatsApp opens in the same tab via whatsapp:// and is recorded', as
   await expect(page).toHaveURL(/created=/)
   const sita = page.getByTestId('order-card').filter({ hasText: 'Phone Sita' })
   await expect(sita).toContainText('No rack')
+  // Tapping a blank part of the card (bottom-right corner, beside the status) opens the ticket.
+  const box = (await sita.boundingBox())!
+  await page.touchscreen.tap(box.x + box.width - 12, box.y + box.height - 12)
+  await expect(page).toHaveURL(/\/orders\/[0-9a-f-]+$/)
+  await page.goBack()
+  await expect(sita).toBeVisible()
   await sita.getByRole('button', { name: /Unstarted/ }).tap()
   await sita.getByRole('button', { name: 'Ready', exact: true }).tap()
   await expect(page).toHaveURL(/\/orders\/[0-9a-f-]+\?rack=1$/)

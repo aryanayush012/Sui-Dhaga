@@ -19,3 +19,15 @@ export function avatarStyle(name: string) {
 
 // Known error code -> its message key, else the generic one.
 export const errorKey = (code: string, known: object) => (`error.${code}` in known ? `error.${code}` : 'error.generic')
+
+type Rect = { top: number; bottom: number; left: number; right: number }
+export type MenuPos = { top?: number; bottom?: number; left?: number; right?: number; maxHeight: number }
+
+// Fixed-position menu next to its trigger: down if all items fit, else toward the bigger side; height capped
+// so every option (incl. Delivered/Rejected) stays reachable by scrolling the menu on short phones.
+export function menuPlacement(r: Rect, vw: number, vh: number, items: number): MenuPos {
+  const below = vh - r.bottom, above = r.top
+  const down = below >= items * 44 + 8 || below >= above
+  const x = r.right > vw / 2 ? { right: vw - r.right } : { left: r.left }
+  return down ? { ...x, top: r.bottom + 4, maxHeight: vh - (r.bottom + 4) - 8 } : { ...x, bottom: vh - r.top + 4, maxHeight: r.top - 8 }
+}
