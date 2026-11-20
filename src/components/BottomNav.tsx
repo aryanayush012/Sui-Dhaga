@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useSession } from '@/lib/session'
 import { useT, type Key } from '@/lib/i18n'
 
-const OWNER: [string, Key][] = [['/', 'nav.board'], ['/orders/new', 'nav.new'], ['/employees', 'nav.employees'], ['/settings', 'nav.settings']]
+const OWNER: [string, Key][] = [['/', 'nav.board'], ['/orders/new', 'nav.new'], ['/settings', 'nav.settings']]
 const EMPLOYEE: [string, Key][] = [['/', 'nav.board'], ['/settings', 'nav.settings']]
 
 export function BottomNav() {
