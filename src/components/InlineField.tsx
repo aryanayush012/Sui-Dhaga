@@ -14,18 +14,19 @@ type Props = {
 
 export function InlineField({ label, value, display, editable, input, options, onSave, before }: Props) {
   const { t } = useT()
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
+    const [draft, setDraft] = useState<string | null>(null) // null = not editing; input falls back to live value
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
-  const close = () => { setEditing(false); setErr(null) }
+  const editing = draft !== null
+  const close = () => { setDraft(null); setErr(null) }
   const save = async () => {
     if (saving) return
     before?.() // sync, inside the click/keypress, so window.open stays in the user gesture
+    setErr(null)
     setSaving(true)
-    const code = await onSave(draft)
-    setSaving(false)
+    let code: string | null
+    try { code = await onSave(draft ?? value) } catch { code = 'generic' } finally { setSaving(false) }
     if (code) setErr(code); else close()
   }
   const btn = 'h-11 w-11 shrink-0 rounded text-lg font-bold disabled:opacity-40'
@@ -37,18 +38,18 @@ export function InlineField({ label, value, display, editable, input, options, o
       {editing ? (
         <div className="flex items-center gap-1">
           {input === 'select' ? (
-            <select autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} className={cls}>
+            <select autoFocus value={draft ?? value} onChange={(e) => setDraft(e.target.value)} className={cls}>
               {options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           ) : (
-            <input autoFocus type={input} inputMode={input === 'tel' ? 'tel' : undefined} value={draft} onChange={(e) => setDraft(e.target.value)}
+            <input autoFocus type={input} inputMode={input === 'tel' ? 'tel' : undefined} value={draft ?? value} onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') save(); else if (e.key === 'Escape') close() }} className={cls} />
           )}
           <button type="button" aria-label={t('ui.save')} disabled={saving} onClick={save} className={`${btn} bg-[#0052CC] text-white`}>✓</button>
           <button type="button" aria-label={t('ui.cancel')} onClick={close} className={`${btn} bg-[#F4F5F7] text-[#42526E]`}>✕</button>
         </div>
       ) : (
-        <button type="button" disabled={!editable} onClick={() => { setDraft(value); setEditing(true) }}
+        <button type="button" disabled={!editable} onClick={() => setDraft(value)}
           className="min-h-11 w-full rounded px-1 text-left text-base enabled:hover:bg-[#F4F5F7]">
           {display ?? (value || '—')}
         </button>
