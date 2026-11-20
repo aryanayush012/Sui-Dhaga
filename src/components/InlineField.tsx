@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { en } from '@/lib/i18n/en'
 import { useT, type Key } from '@/lib/i18n'
 import { errorKey } from '@/lib/ui'
@@ -10,12 +10,14 @@ type Props = {
   options?: { value: string; label: string }[]
   onSave: (v: string) => Promise<string | null>
   before?: (v: string) => void
+  startEditing?: number // bump to open edit mode from outside
   link?: string // display becomes this link (e.g. tel:) and a ✎ button starts editing
 }
 
-export function InlineField({ label, value, display, editable, input, options, onSave, before, link }: Props) {
+export function InlineField({ label, value, display, editable, input, options, onSave, before, link, startEditing = 0 }: Props) {
   const { t } = useT()
-    const [draft, setDraft] = useState<string | null>(null) // null = not editing; input falls back to live value
+  const [draft, setDraft] = useState<string | null>(null) // null = not editing; input falls back to live value
+  useEffect(() => { if (startEditing) setDraft((d) => d ?? value) }, [startEditing]) // eslint-disable-line react-hooks/exhaustive-deps
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 

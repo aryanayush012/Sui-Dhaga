@@ -70,7 +70,8 @@ export default function NewOrderPage() {
         if (w) w.location.href = link
       } catch (e) { console.warn('whatsapp link', e) }
       // Subscribed (lazy builder) but not awaited before navigating.
-      supabase.rpc('record_whatsapp_send', { p_order_id: r.id, p_kind: 'created' })
+      // Only when the popup actually opened; a blocked popup leaves the "not told yet" dot (banner link records nothing).
+      if (w) supabase.rpc('record_whatsapp_send', { p_order_id: r.id, p_kind: 'created' })
         .then(({ error: e }) => { if (e) console.warn('record_whatsapp_send', e.message) }, (e) => console.warn('record_whatsapp_send', e))
       router.push(`/?created=${r.slip_no}${!w && link ? `&wa=${encodeURIComponent(link)}` : ''}`)
     }).then(undefined, (e: { message?: string } | null) => {

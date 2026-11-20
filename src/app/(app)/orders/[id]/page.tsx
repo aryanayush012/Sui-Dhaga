@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useSession } from '@/lib/session'
@@ -37,6 +37,8 @@ export default function TicketPage() {
   const [stages, setStages] = useState<Stage[]>([])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const sentRef = useRef(false) // due-date popup opened in the last save click
+  const [rackEdit, setRackEdit] = useState(0) // bump to open the Rack field for editing
   const [tab, setTab] = useState<'m' | 'h'>('m')
 
   const load = useCallback(async () => {
@@ -96,14 +98,15 @@ export default function TicketPage() {
   function pick(target: StatusTarget) {
     if (!o || busy || statusParam(target) === statusParam(currentStatus(o))) return
     const fx = statusEffects(target, o, member.role, readyStageId(stages))
+    if (fx.needsRack) { setErr('set_rack_first'); setRackEdit((n) => n + 1); return }
     if (fx.confirm && !window.confirm(fx.confirm === 'rejected' ? t('confirm.rejected')
       : balance ? t('confirm.delivered_due', { due: balance }) : t('confirm.delivered'))) return
     const wa = fx.openWhatsApp ? waUrl('ready') : ''
-    if (wa) window.open(wa, '_blank')
+    const w = wa ? window.open(wa, '_blank') : null
     setBusy(true); setErr('')
     rpc('set_status', { p_order_id: o.id, p_target: statusParam(target) })
       // Record after the move: "communicated" compares the send time with the stage event.
-      .then(({ error }) => { if (error) setErr(error.message); return wa && !error ? recordSend('ready') : load() })
+      .then(({ error }) => { if (error) setErr(error.message); return w && !error ? recordSend('ready') : load() })
       .then(() => setBusy(false), () => setBusy(false))
   }
 
@@ -137,14 +140,14 @@ export default function TicketPage() {
             options={[{ value: '', label: '—' }, ...members.filter((m) => m.is_active || m.id === o.assignee_id).map((m) => ({ value: m.id, label: m.name }))]}
             onSave={(v) => call('assign_order', { p_order_id: o.id, p_member_id: v || null })} />
         )}
-        <InlineField label={t('field.rack')} input="text" editable={!closed && canAct} value={o.rack ?? ''}
+        <InlineField label={t('field.rack')} input="text" startEditing={rackEdit} editable={!closed && canAct} value={o.rack ?? ''}
           onSave={(v) => (v.trim() === (o.rack ?? '') ? Promise.resolve(null) : call('set_rack', { p_order_id: o.id, p_rack: v.trim() }))} />
         <InlineField label={t('field.due')} input="date" editable={ed} value={o.due_date}
-          before={(v) => { const u = dueAutoOpen(o, v) ? waUrl('date_changed', v) : ''; if (u) window.open(u, '_blank') }}
+          before={(v) => { const u = dueAutoOpen(o, v) ? waUrl('date_changed', v) : ''; sentRef.current = u ? !!window.open(u, '_blank') : false }}
           onSave={async (v) => {
             if (!v || v === o.due_date) return v ? null : 'invalid_input'
             const code = await call('change_due_date', { p_order_id: o.id, p_due: v })
-            if (!code && dueAutoOpen(o, v)) await recordSend('date_changed') // after the due_date event, so it counts
+            if (!code && sentRef.current) await recordSend('date_changed') // after the due_date event, so it counts
             return code
           }} />
         {isOwner && (

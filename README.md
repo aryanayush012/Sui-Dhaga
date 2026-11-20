@@ -1,6 +1,6 @@
 # Sui-Dhaga
 
-Mobile-first PWA for tailor shops: Jira-style order board and list, ticket view with inline editing and a status menu (Not started, Cutting, Stitching, Ironing, Ready, Delivered, Rejected), per-garment details, payments, WhatsApp updates, owner settings (staff, shop, app) and a public Hindi/English customer tracking page. Next.js 15 (App Router) + Supabase.
+Mobile-first PWA for tailor shops: Jira-style order board and list, ticket view with inline editing and a status menu (Unstarted, Cutting, Stitching, Ironing, Ready, Delivered, Rejected), per-garment details, payments, WhatsApp updates, owner settings (staff, shop, app) and a public Hindi/English customer tracking page. Next.js 15 (App Router) + Supabase.
 
 ## Local setup
 

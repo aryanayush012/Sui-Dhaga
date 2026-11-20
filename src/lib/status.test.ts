@@ -12,14 +12,22 @@ describe('status', () => {
     expect(statusOptions(S, 'employee')).toHaveLength(5)
   })
   it('owner picking Ready opens WhatsApp; employee does not; already-ready does not', () => {
-    const open = { special_state: null, is_ready: false }
+    const open = { special_state: null, is_ready: false, rack: 'A1' }
     expect(statusEffects({ kind: 'stage', stageId: 's5' }, open, 'owner', 's5').openWhatsApp).toBe('ready')
     expect(statusEffects({ kind: 'stage', stageId: 's5' }, open, 'employee', 's5').openWhatsApp).toBeNull()
-    expect(statusEffects({ kind: 'stage', stageId: 's5' }, { special_state: null, is_ready: true }, 'owner', 's5').openWhatsApp).toBeNull()
-    expect(statusEffects({ kind: 'stage', stageId: 's5' }, { special_state: 'delivered', is_ready: true }, 'owner', 's5').openWhatsApp).toBe('ready')
+    expect(statusEffects({ kind: 'stage', stageId: 's5' }, { special_state: null, is_ready: true, rack: 'A1' }, 'owner', 's5').openWhatsApp).toBeNull()
+    expect(statusEffects({ kind: 'stage', stageId: 's5' }, { special_state: 'delivered', is_ready: true, rack: 'A1' }, 'owner', 's5').openWhatsApp).toBe('ready')
+  })
+  it('needsRack only when moving to Ready without a rack', () => {
+    const o = (rack: string | null) => ({ special_state: null, is_ready: false, rack })
+    expect(statusEffects({ kind: 'stage', stageId: 's5' }, o(null), 'employee', 's5').needsRack).toBe(true)
+    expect(statusEffects({ kind: 'stage', stageId: 's5' }, o('  '), 'owner', 's5').needsRack).toBe(true)
+    expect(statusEffects({ kind: 'stage', stageId: 's5' }, o('A1'), 'owner', 's5').needsRack).toBe(false)
+    expect(statusEffects({ kind: 'stage', stageId: 's2' }, o(null), 'owner', 's5').needsRack).toBe(false)
+    expect(statusEffects({ kind: 'delivered' }, o(null), 'owner', 's5').needsRack).toBe(false)
   })
   it('end states ask for confirmation', () => {
-    const open = { special_state: null, is_ready: false }
+    const open = { special_state: null, is_ready: false, rack: 'A1' }
     expect(statusEffects({ kind: 'cancelled' }, open, 'owner', 's5').confirm).toBe('rejected')
     expect(statusEffects({ kind: 'delivered' }, open, 'owner', 's5').confirm).toBe('delivered')
     expect(statusEffects({ kind: 'stage', stageId: 's2' }, open, 'owner', 's5').confirm).toBeNull()

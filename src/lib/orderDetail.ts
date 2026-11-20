@@ -17,7 +17,8 @@ export function eventText(e: EventRow, { t, stage, member }: Lookups): string {
     case 'created': return t('ev.created', { n: v ?? '' })
     case 'stage': return t('ev.stage', { from: stage(f), to: stage(v) })
     case 'special_state':
-      return t(v === 'cancelled' ? 'ev.rejected' : v === 'delivered' ? 'ev.delivered' : 'ev.reopened')
+      // Legacy v1 events: to 'on_hold' = put on hold; from 'on_hold' to null = resumed.
+      return t(v === 'cancelled' ? 'ev.rejected' : v === 'delivered' ? 'ev.delivered' : v === 'on_hold' ? 'ev.on_hold' : f === 'on_hold' && v === null ? 'ev.resumed' : 'ev.reopened')
     case 'rack': return t('ev.rack', { from: f || '—', to: v || '—' })
     case 'assignee': return t('ev.assignee', { from: member(f), to: member(v) })
     case 'due_date': return t('ev.due_date', { from: f ?? '—', to: v ?? '—' })
@@ -58,6 +59,6 @@ export function waData(o: BoardOrder, shopName: string, origin: string, dueDate 
   }
 }
 
-// Auto-open WhatsApp on a due-date save only for a real change on an open order with a mobile.
-export const dueAutoOpen = (o: Pick<BoardOrder, 'customer_mobile' | 'special_state' | 'due_date'>, due: string) =>
-  !!o.customer_mobile && o.special_state === null && due !== '' && due !== o.due_date
+// Auto-open WhatsApp on a due-date save only for a real change on an open, not-Ready order with a mobile.
+export const dueAutoOpen = (o: Pick<BoardOrder, 'customer_mobile' | 'special_state' | 'due_date' | 'is_ready'>, due: string) =>
+  !!o.customer_mobile && o.special_state === null && !o.is_ready && due !== '' && due !== o.due_date

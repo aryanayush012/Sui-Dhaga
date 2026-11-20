@@ -28,11 +28,14 @@ export function statusTone(o: Pick<BoardOrder, 'stage_position' | 'is_ready' | '
   return o.stage_position <= firstPosition ? 'todo' : 'progress'
 }
 
-export function statusEffects(target: StatusTarget, o: Pick<BoardOrder, 'special_state' | 'is_ready'>, role: Role, readyStageId: string) {
+export function statusEffects(target: StatusTarget, o: Pick<BoardOrder, 'special_state' | 'is_ready' | 'rack'>, role: Role, readyStageId: string) {
   const alreadyReadyOpen = o.is_ready && o.special_state === null
+  const toReady = target.kind === 'stage' && target.stageId === readyStageId
   return {
+    // v1 rule: moving to Ready needs a rack (caller shows a message and stops).
+    needsRack: toReady && !o.rack?.trim(),
     confirm: target.kind === 'delivered' ? 'delivered' as const : target.kind === 'cancelled' ? 'rejected' as const : null,
-    openWhatsApp: role === 'owner' && target.kind === 'stage' && target.stageId === readyStageId && !alreadyReadyOpen ? 'ready' as const : null,
+    openWhatsApp: role === 'owner' && toReady && !alreadyReadyOpen ? 'ready' as const : null,
   }
 }
 

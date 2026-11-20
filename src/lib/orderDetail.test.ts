@@ -13,6 +13,10 @@ describe('eventText', () => {
   it('info lists translated field names, not values', () =>
     expect(eventText(ev('info', null, 'name,mobile'), L)).toBe('Edited: Customer name, Mobile number'))
   it('special state null is reopened', () => expect(eventText(ev('special_state', 'delivered', null), L)).toBe(t('ev.reopened')))
+  it('legacy on_hold events', () => {
+    expect(eventText(ev('special_state', null, 'on_hold'), L)).toBe(t('ev.on_hold'))
+    expect(eventText(ev('special_state', 'on_hold', null), L)).toBe(t('ev.resumed'))
+  })
   it('paid event and rejected wording', () => {
     expect(eventText(ev('paid', '300', '500'), L)).toBe(t('ev.paid', { from: '₹300', to: '₹500' }))
     expect(eventText(ev('special_state', null, 'cancelled'), L)).toBe(t('ev.rejected'))
@@ -43,7 +47,7 @@ describe('parseTotal', () => {
 
 describe('waData / dueAutoOpen', () => {
   const o = { slip_no: 7, customer_name: 'Ravi', garment_summary: '1 pant', due_date: '2026-11-25', paid_amount: 300,
-    total_amount: 800, tracking_token: 'tok', customer_mobile: '9876543210', special_state: null } as BoardOrder
+    total_amount: 800, tracking_token: 'tok', customer_mobile: '9876543210', special_state: null, is_ready: false } as BoardOrder
   it('builds message data with balance and tracking link', () => {
     expect(waData(o, 'Shop', 'https://x')).toMatchObject({ slipNo: 7, paid: 300, balance: 500, dueDate: '2026-11-25', trackingUrl: 'https://x/t/tok' })
     expect(waData({ ...o, total_amount: null }, 'Shop', 'https://x', '2026-12-01')).toMatchObject({ balance: null, dueDate: '2026-12-01' })
@@ -53,6 +57,7 @@ describe('waData / dueAutoOpen', () => {
     expect(dueAutoOpen(o, '2026-11-25')).toBe(false)
     expect(dueAutoOpen(o, '')).toBe(false)
     expect(dueAutoOpen({ ...o, special_state: 'delivered' }, '2026-11-26')).toBe(false)
+    expect(dueAutoOpen({ ...o, is_ready: true }, '2026-11-26')).toBe(false)
     expect(dueAutoOpen({ ...o, customer_mobile: null }, '2026-11-26')).toBe(false)
   })
 })

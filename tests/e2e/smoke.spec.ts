@@ -41,7 +41,7 @@ test('owner books an order, moves it to Ready, customer sees it', async ({ page 
   await expect(banner).toBeVisible()
   await expect(banner.getByRole('link', { name: 'Send on WhatsApp' })).toHaveAttribute('href', /^https:\/\/wa\.me\//)
 
-  const column = page.locator('section').filter({ has: page.getByRole('heading', { name: /^Not started/ }) })
+  const column = page.locator('section').filter({ has: page.getByRole('heading', { name: /^Unstarted/ }) })
   const card = column.getByText('Ravi Kumar')
   await expect(card).toBeVisible()
   await expect(column).toContainText('A1')
