@@ -71,14 +71,14 @@ isOneToOne: false
                   ]
                 },"order_events": {
                   Row: {
-                    "action": string,"actor_id": string,"created_at": string,"from_value": string | null,"id": string,"order_id": string,"shop_id": string,"to_value": string | null
+                    "action": string,"actor_id": string | null,"created_at": string,"from_value": string | null,"id": string,"order_id": string,"shop_id": string,"to_value": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "action": string,"actor_id": string,"created_at"?: string,"from_value"?: string | null,"id"?: string,"order_id": string,"shop_id": string,"to_value"?: string | null
+                    "action": string,"actor_id"?: string | null,"created_at"?: string,"from_value"?: string | null,"id"?: string,"order_id": string,"shop_id": string,"to_value"?: string | null
                   }
                   Update: {
-                    "action"?: string,"actor_id"?: string,"created_at"?: string,"from_value"?: string | null,"id"?: string,"order_id"?: string,"shop_id"?: string,"to_value"?: string | null
+                    "action"?: string,"actor_id"?: string | null,"created_at"?: string,"from_value"?: string | null,"id"?: string,"order_id"?: string,"shop_id"?: string,"to_value"?: string | null
                   }
                   Relationships: [
                     {
@@ -353,11 +353,17 @@ isOneToOne: false
 "set_member_active":
 { Args: { "p_active": boolean,"p_member_id": string }; Returns: undefined
                            },
+"set_paid":
+{ Args: { "p_order_id": string,"p_paid": number }; Returns: undefined
+                           },
 "set_rack":
 { Args: { "p_order_id": string,"p_rack": string }; Returns: undefined
                            },
 "set_special_state":
 { Args: { "p_order_id": string,"p_state": string }; Returns: undefined
+                           },
+"set_status":
+{ Args: { "p_order_id": string,"p_target": string }; Returns: undefined
                            },
 "set_total":
 { Args: { "p_order_id": string,"p_total": number }; Returns: undefined

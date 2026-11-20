@@ -68,8 +68,8 @@ describe('public tracking', () => {
     const t = data as Record<string, unknown>
     expect(Object.keys(t).sort()).toEqual(['due_date', 'garment_summary', 'is_ready', 'paid_amount',
       'shop_name', 'slip_no', 'special_state', 'stage_name', 'stage_names', 'total_amount'])
-    expect(t).toMatchObject({ shop_name: 'Test Shop', slip_no: o.slip_no, garment_summary: '2 pant', stage_name: 'Cutting',
-      stage_names: ['Cutting', 'Stitching', 'Ironing', 'Ready'], is_ready: false, special_state: null,
+    expect(t).toMatchObject({ shop_name: 'Test Shop', slip_no: o.slip_no, garment_summary: '2 pant', stage_name: 'Unstarted',
+      stage_names: ['Unstarted', 'Cutting', 'Stitching', 'Ironing', 'Ready'], is_ready: false, special_state: null,
       total_amount: 500, paid_amount: 200 })
     const json = JSON.stringify(t)
     for (const leak of ['B3', 'secret', 'waist', 'Ramesh']) expect(json).not.toContain(leak)

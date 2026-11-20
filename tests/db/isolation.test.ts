@@ -15,7 +15,7 @@ describe('isolation', () => {
   it('owner of shop A cannot read shop B rows', async () => {
     const { data } = await a.owner.client.from('stages').select('shop_id')
     expect(data!.every(r => r.shop_id === a.shopId)).toBe(true)
-    expect(data).toHaveLength(4)
+    expect(data).toHaveLength(5)
     const { data: shops } = await a.owner.client.from('shops').select('id')
     expect(shops!.map(s => s.id)).toEqual([a.shopId])
     const { data: members } = await a.owner.client.from('members').select('shop_id')
@@ -24,7 +24,7 @@ describe('isolation', () => {
 
   it('seeds stages in order', async () => {
     const { data } = await a.owner.client.from('stages').select('name').order('position')
-    expect(data!.map(s => s.name)).toEqual(['Cutting', 'Stitching', 'Ironing', 'Ready'])
+    expect(data!.map(s => s.name)).toEqual(['Unstarted', 'Cutting', 'Stitching', 'Ironing', 'Ready'])
   })
 
   it('owners read their own orders and payments only', async () => {

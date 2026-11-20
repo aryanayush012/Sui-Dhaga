@@ -23,7 +23,7 @@ describe('create_order', () => {
     const o1 = await newOrder(a.owner.client); const o2 = await newOrder(a.owner.client)
     expect([o1.slip_no, o2.slip_no]).toEqual([1, 2])
     const data = await board(a.owner.client, o1.id)
-    expect(data.stage_name).toBe('Cutting')
+    expect(data.stage_name).toBe('Unstarted')
     expect(data.garment_summary).toBe('1 pant')
     expect(data.is_ready).toBe(false)
     expect(data.paid_amount).toBe(0)
@@ -116,7 +116,7 @@ describe('order mutations', () => {
     expect((await e1.client.rpc('move_order', { p_order_id: mine.id, p_stage_id: stitching })).error).toBeNull()
     expect((await e1.client.rpc('move_order', { p_order_id: theirs.id, p_stage_id: stitching })).error?.message).toBe('forbidden')
     expect((await board(s.owner.client, mine.id)).stage_name).toBe('Stitching')
-    expect((await board(s.owner.client, theirs.id)).stage_name).toBe('Cutting')
+    expect((await board(s.owner.client, theirs.id)).stage_name).toBe('Unstarted')
     // same rule for rack
     expect((await e1.client.rpc('set_rack', { p_order_id: theirs.id, p_rack: 'B3' })).error?.message).toBe('forbidden')
     await rpcOk(e1.client, 'set_rack', { p_order_id: mine.id, p_rack: ' B3 ' })
@@ -149,7 +149,7 @@ describe('order mutations', () => {
     const calls: [string, object][] = [
       ['change_due_date', { p_order_id: o.id, p_due: '2027-01-01' }],
       ['assign_order', { p_order_id: o.id, p_member_id: e1.id }],
-      ['set_special_state', { p_order_id: o.id, p_state: 'on_hold' }],
+      ['set_special_state', { p_order_id: o.id, p_state: 'cancelled' }],
       ['update_order_info', { p_order_id: o.id, p_name: 'X', p_mobile: '9000000000', p_notes: null }],
       ['save_garment', { p_order_id: o.id, p: { type: 'shirt', qty: 1 } }],
     ]
@@ -237,7 +237,7 @@ describe('cross-shop attacks', () => {
     for (const [fn, args] of calls) await expect(rpcOk(s.owner.client, fn, args), fn).rejects.toThrow('not_found')
     const row = await board(x.owner.client, theirs.id)
     expect([row.stage_name, row.rack, row.special_state, row.customer_name, row.garment_summary])
-      .toEqual(['Cutting', null, null, 'Ramesh', '1 pant'])
+      .toEqual(['Unstarted', null, null, 'Ramesh', '1 pant'])
   })
 
   it('cannot move own order into another shop\'s stage', async () => {
