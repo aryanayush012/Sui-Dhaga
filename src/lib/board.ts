@@ -19,9 +19,9 @@ export function searchFilter(raw: string, isOwner: boolean): SearchFilter | null
 }
 
 type Filterable<T> = { or(f: string): T; eq(col: string, v: unknown): T; ilike(col: string, v: string): T }
-// Board shows open + on-hold orders; a search also finds delivered/cancelled ones (later payment, refund, undo).
+// Board shows open orders; a search also finds delivered/cancelled ones (later payment, refund, undo).
 export function applyBoardFilter<T extends Filterable<T>>(q: T, f: SearchFilter | null): T {
-  if (!f) return q.or('special_state.is.null,special_state.eq.on_hold')
+  if (!f) return q.or('special_state.is.null')
   return f.op === 'eq' ? q.eq(f.col, f.value) : q.ilike(f.col, String(f.value))
 }
 
@@ -31,9 +31,6 @@ export function matchesSearch(o: BoardOrder, f: SearchFilter): boolean {
   const v = String(f.value).slice(1, -1).replace(/\\(.)/g, '$1').toLowerCase()
   return (f.col === 'customer_mobile' ? o.customer_mobile ?? '' : o.customer_name).toLowerCase().includes(v)
 }
-
-export const nextStage = (stages: Stage[], o: Pick<BoardOrder, 'stage_position'>): Stage | null =>
-  stages.find((s) => s.position > o.stage_position) ?? null
 
 export type Cache = { rows: BoardOrder[]; stages: Stage[]; savedAt: number }
 const PREFIX = 'board-cache:'

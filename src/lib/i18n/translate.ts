@@ -13,6 +13,7 @@ export function translate(lang: Lang, key: Key, vars?: Vars): string {
 }
 
 const STAGES: Record<string, Key> = {
-  Cutting: 'stage.cutting', Stitching: 'stage.stitching', Ironing: 'stage.ironing', Ready: 'stage.ready',
+  Unstarted: 'status.unstarted', Cutting: 'stage.cutting', Stitching: 'stage.stitching', Ironing: 'stage.ironing', Ready: 'stage.ready',
 }
+export const stageKey = (name: string): Key | undefined => STAGES[name]
 export const stageLabel = (name: string, t: (k: Key) => string) => (STAGES[name] ? t(STAGES[name]) : name)

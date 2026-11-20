@@ -1,6 +1,6 @@
 export type GarmentType = 'pant' | 'shirt' | 'suit' | 'blouse' | 'other'
 export type PaymentMethod = 'cash' | 'upi' | 'other'
-export type SpecialState = 'on_hold' | 'cancelled' | 'delivered'
+export type SpecialState = 'cancelled' | 'delivered'
 export type CommKind = 'created' | 'date_changed' | 'ready'
 export type GarmentInput = { id?: string; type: GarmentType; qty: number;
   cloth_photo_path?: string | null; measurement_photo_path?: string | null;

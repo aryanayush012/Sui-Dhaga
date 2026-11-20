@@ -1,6 +1,6 @@
 import type { Key } from './i18n'
 
-export type EventRow = { id: string; action: string; from_value: string | null; to_value: string | null; actor_id: string; created_at: string }
+export type EventRow = { id: string; action: string; from_value: string | null; to_value: string | null; actor_id: string | null; created_at: string }
 type T = (k: Key, v?: Record<string, string | number>) => string
 type Lookups = { t: T; stage: (id: string | null) => string; member: (id: string | null) => string }
 
@@ -15,11 +15,12 @@ export function eventText(e: EventRow, { t, stage, member }: Lookups): string {
     case 'created': return t('ev.created', { n: v ?? '' })
     case 'stage': return t('ev.stage', { from: stage(f), to: stage(v) })
     case 'special_state':
-      return v === 'on_hold' || v === 'cancelled' || v === 'delivered' ? t(`ev.${v}` as Key) : t('ev.resumed')
+      return t(v === 'cancelled' ? 'ev.rejected' : v === 'delivered' ? 'ev.delivered' : 'ev.reopened')
     case 'rack': return t('ev.rack', { from: f || '—', to: v || '—' })
     case 'assignee': return t('ev.assignee', { from: member(f), to: member(v) })
     case 'due_date': return t('ev.due_date', { from: f ?? '—', to: v ?? '—' })
     case 'total': return t('ev.total', { from: rupees(f), to: rupees(v) })
+    case 'paid': return t('ev.paid', { from: rupees(f), to: rupees(v) })
     case 'payment': return t('ev.payment', { amount: rupees(v).replace('₹-', '-₹') })
     case 'info': {
       const names = (v ?? '').split(',').filter(Boolean).map((k) => (INFO_FIELDS[k] ? t(INFO_FIELDS[k]) : k))
@@ -35,18 +36,13 @@ export function eventText(e: EventRow, { t, stage, member }: Lookups): string {
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; error: 'invalid_input' | 'note_required' }
 
-// Amount is digits only (numeric keypads have no minus); refunds use the `negative` flag.
-export function parsePayment(amount: string, negative: boolean, note: string): Parsed<{ amount: number; note: string | null }> {
-  if (!/^\d+$/.test(amount.trim())) return { ok: false, error: 'invalid_input' }
-  const n = parseInt(amount, 10)
-  if (!Number.isSafeInteger(n) || n === 0) return { ok: false, error: 'invalid_input' }
-  const nt = note.trim()
-  if (negative && !nt) return { ok: false, error: 'note_required' }
-  return { ok: true, value: { amount: negative ? -n : n, note: nt || null } }
-}
+// Null actor = system event (e.g. auto-created order).
+export const actorName = (id: string | null, member: (id: string | null) => string, t: T) => (id === null ? t('order.system') : member(id))
 
 export function parseTotal(s: string): Parsed<number> {
   if (!/^\d+$/.test(s.trim())) return { ok: false, error: 'invalid_input' }
   const n = parseInt(s, 10)
   return Number.isSafeInteger(n) ? { ok: true, value: n } : { ok: false, error: 'invalid_input' }
 }
+
+export const parseAmount = parseTotal // digits only, >= 0 (Paid field)

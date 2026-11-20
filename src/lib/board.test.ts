@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { searchFilter, escapeLike, nextStage, matchesSearch, saveCache, loadCache, applyBoardFilter, clearDeviceData, SW_CACHE } from './board'
+import { searchFilter, escapeLike, matchesSearch, saveCache, loadCache, applyBoardFilter, clearDeviceData, SW_CACHE } from './board'
 import type { BoardOrder } from './types'
 
 const stages = [{ id: 'a', name: 'Cutting', position: 1 }, { id: 'b', name: 'Ready', position: 2 }]
@@ -27,7 +27,7 @@ describe('board', () => {
     const q = { or: (s: string) => (calls.push(`or ${s}`), q), eq: (c: string, v: unknown) => (calls.push(`eq ${c} ${v}`), q),
       ilike: (c: string, v: string) => (calls.push(`ilike ${c} ${v}`), q) }
     applyBoardFilter(q, null)
-    expect(calls).toEqual(['or special_state.is.null,special_state.eq.on_hold'])
+    expect(calls).toEqual(['or special_state.is.null'])
     calls.length = 0
     applyBoardFilter(q, searchFilter('12', true))
     expect(calls).toEqual(['eq slip_no 12']) // no special_state filter: delivered/cancelled are findable
@@ -37,10 +37,6 @@ describe('board', () => {
     expect(matchesSearch(o, searchFilter('3', true)!)).toBe(true)
     expect(matchesSearch(o, searchFilter('m_l', true)!)).toBe(true)
     expect(matchesSearch(o, searchFilter('mal', true)!)).toBe(false)
-  })
-  it('nextStage', () => {
-    expect(nextStage(stages, { stage_position: 1 })?.id).toBe('b')
-    expect(nextStage(stages, { stage_position: 2 })).toBeNull()
   })
   describe('cache', () => {
     const store: Record<string, string> = {}
