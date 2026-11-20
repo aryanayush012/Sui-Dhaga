@@ -6,28 +6,16 @@ import { useT, type Key } from '@/lib/i18n'
 import { normalizeMobile } from '@/lib/mobile'
 import { todayIST } from '@/lib/deadline'
 import { whatsappLink, whatsappMessage } from '@/lib/whatsapp'
-import { uid } from '@/lib/uid'
 import { siteUrl } from '@/lib/site'
-import type { GarmentInput, NewOrderInput, PaymentMethod } from '@/lib/types'
+import { parseAmount } from '@/lib/orderDetail'
+import { paymentSummary } from '@/lib/money'
+import { GARMENT_TYPES } from '@/lib/garments'
+import { addChip, addDays, attachPhoto, buildPayload, garmentSummary, removeChip, type Row } from '@/lib/newOrder'
 import { GarmentForm } from '@/components/GarmentForm'
+import { PhotoInput } from '@/components/PhotoInput'
 
-type Row = GarmentInput & { key: string } // key is client-only: React key + patch target
-const newGarment = (): Row => ({ key: uid(), type: 'pant', qty: 1, measurements: {} })
-const addDays = (s: string, n: number) => {
-  const [y, m, d] = s.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10)
-}
-const toInt = (s: string) => (s.trim() === '' ? null : Math.max(0, Math.floor(Number(s)) || 0))
-// Same format as board_orders.garment_summary: qty summed per type, ordered by type.
-const summary = (gs: GarmentInput[]) => {
-  const m = new Map<string, number>()
-  gs.forEach((g) => m.set(g.type, (m.get(g.type) ?? 0) + g.qty))
-  return [...m].sort(([a], [b]) => (a < b ? -1 : 1)).map(([ty, q]) => `${q} ${ty}`).join(', ')
-}
 const input = 'min-h-12 w-full rounded-lg border border-line bg-white px-3 text-lg'
 const KNOWN_ERRORS = ['error.invalid_mobile', 'error.invalid_input', 'error.exceeds_total', 'error.not_owner']
-
-type Done = { id: string; slip_no: number; tracking_token: string; mobile: string; name: string; due: string; gs: string; balance: number | null }
 
 export default function NewOrderPage() {
   const { supabase, member, shop } = useSession()
@@ -37,18 +25,15 @@ export default function NewOrderPage() {
   const [mobile, setMobile] = useState('')
   const [due, setDue] = useState(() => addDays(todayIST(), 7))
   const [rack, setRack] = useState('')
-  const [garments, setGarments] = useState<Row[]>(() => [newGarment()])
+  const [garments, setGarments] = useState<Row[]>([])
   const [assignee, setAssignee] = useState('')
   const [total, setTotal] = useState('')
-  const [advance, setAdvance] = useState('')
-  const [method, setMethod] = useState<PaymentMethod>('cash')
-  const [notes, setNotes] = useState('')
+  const [paid, setPaid] = useState('')
   const [staff, setStaff] = useState<{ id: string; name: string }[]>([])
   const [busy, setBusy] = useState(0)
   const [saving, setSaving] = useState(false)
   const [mobileErr, setMobileErr] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [done, setDone] = useState<Done | null>(null)
 
   const isOwner = member.role === 'owner'
   useEffect(() => { if (!isOwner) router.replace('/') }, [isOwner, router])
@@ -60,55 +45,37 @@ export default function NewOrderPage() {
 
   const onBusy = (b: boolean) => setBusy((n) => n + (b ? 1 : -1))
 
-  async function save() {
+  function create() {
+    setErr(null)
     const m = normalizeMobile(mobile)
-    setMobileErr(!m); setErr(null)
-    if (!m) return
-    const adv = toInt(advance), tot = toInt(total)
-    const payload: NewOrderInput = {
-      customer_name: name.trim(), customer_mobile: m, due_date: due,
-      rack: rack.trim() || null, assignee_id: assignee || null, total_amount: tot, notes: notes.trim() || null,
-      garments: garments.map((g) => ({
-        type: g.type, qty: g.qty, cloth_photo_path: g.cloth_photo_path, measurement_photo_path: g.measurement_photo_path,
-        instructions: g.instructions,
-        measurements: Object.fromEntries(Object.entries(g.measurements ?? {}).filter(([, v]) => v.trim() !== '')),
-      })),
-      advance: adv ? { amount: adv, method } : null,
-    }
+    setMobileErr(!m)
+    const tot = total === '' ? null : parseAmount(total), adv = paid === '' ? null : parseAmount(paid)
+    if (!m || name.trim() === '' || due === '' || (tot && !tot.ok) || (adv && !adv.ok)) return
+    const totalN = tot?.ok ? tot.value : null, advN = adv?.ok ? adv.value : null
+    if (totalN !== null && advN !== null && advN > totalN) { setErr(t('error.exceeds_total')); return }
+    const payload = buildPayload({ name, mobile: m, due, rack, assignee, total: totalN, advance: advN, notes: '', garments: garments.length ? garments : addChip([], 'other') })
+    // Must be opened synchronously in the click, before any await.
+    const w = window.open('', '_blank')
     setSaving(true)
-    const { data, error } = await supabase.rpc('create_order', { p: payload })
-    setSaving(false)
-    if (error) {
-      const k = `error.${error.message}`
-      setErr(t(KNOWN_ERRORS.includes(k) ? (k as Key) : 'error.generic'))
-      return
-    }
-    const r = data as { id: string; slip_no: number; tracking_token: string }
-    setDone({ ...r, mobile: m, name: payload.customer_name, due, gs: summary(garments), balance: tot === null ? null : tot - (adv ?? 0) })
-  }
-
-  if (done) {
-    const text = whatsappMessage('created', lang, {
-      shopName: shop.name, slipNo: done.slip_no, customerName: done.name, garmentSummary: done.gs, dueDate: done.due,
-      balance: done.balance, trackingUrl: `${siteUrl()}/t/${done.tracking_token}`,
-    })
-    return (
-      <main className="flex flex-col items-center gap-6 pt-12 text-center">
-        <p className="text-muted">{t('order.saved')}</p>
-        <p className="text-sm text-muted">{t('order.slip')}</p>
-        <p className="text-7xl font-bold">#{done.slip_no}</p>
-        {/* Plain link: opens inside the tap gesture. Send is logged fire-and-forget. */}
-        <a href={whatsappLink(done.mobile, text)} target="_blank" rel="noopener noreferrer"
-          onClick={() => {
-            // Lazy builder: must be subscribed with then() or the request never fires.
-            supabase.rpc('record_whatsapp_send', { p_order_id: done.id, p_kind: 'created' }).then(({ error }) => {
-              if (error) console.warn('record_whatsapp_send', error.message)
-            })
-          }}
-          className="flex min-h-14 w-full items-center justify-center rounded-lg bg-accent text-xl text-white">{t('order.whatsapp')}</a>
-        <button onClick={() => router.push('/')} className="min-h-12 w-full rounded-lg border border-line bg-white text-lg">{t('order.skip')}</button>
-      </main>
-    )
+    supabase.rpc('create_order', { p: payload }).then(({ data, error }) => {
+      if (error) {
+        w?.close()
+        setSaving(false)
+        const k = `error.${error.message}`
+        setErr(t(KNOWN_ERRORS.includes(k) ? (k as Key) : 'error.generic'))
+        return
+      }
+      const r = data as { id: string; slip_no: number; tracking_token: string }
+      const text = whatsappMessage('created', lang, {
+        shopName: shop.name, slipNo: r.slip_no, customerName: payload.customer_name, garmentSummary: garmentSummary(payload.garments),
+        dueDate: due, paid: advN ?? 0, balance: paymentSummary(totalN, advN ?? 0).balance, trackingUrl: `${siteUrl()}/t/${r.tracking_token}`,
+      })
+      const link = whatsappLink(m, text)
+      if (w) w.location.href = link
+      return supabase.rpc('record_whatsapp_send', { p_order_id: r.id, p_kind: 'created' }).then(({ error: e }) => {
+        if (e) console.warn('record_whatsapp_send', e.message)
+      }).then(() => router.push(`/?created=${r.slip_no}${w ? '' : `&wa=${encodeURIComponent(link)}`}`))
+    }, () => { w?.close(); setSaving(false); setErr(t('error.generic')) })
   }
 
   const ready = name.trim() !== '' && mobile !== '' && due !== '' && busy === 0 && !saving
@@ -121,18 +88,36 @@ export default function NewOrderPage() {
           value={mobile} onChange={(e) => { setMobile(e.target.value); setMobileErr(false) }} />
         {mobileErr && <p role="alert" className="text-sm text-red-600">{t('error.invalid_mobile')}</p>}
       </div>
-      <label className="flex flex-col text-sm text-muted">{t('order.due')}
-        <input className={`${input} text-black`} type="date" value={due} onChange={(e) => setDue(e.target.value)} />
-      </label>
-      <input className={input} placeholder={t('order.rack')} aria-label={t('order.rack')} value={rack} onChange={(e) => setRack(e.target.value)} />
+      <div className="flex gap-2">
+        <label className="flex min-w-0 flex-[3] flex-col text-sm text-muted">{t('order.due')}
+          <input className={`${input} text-black`} type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+        </label>
+        <label className="flex min-w-0 flex-[2] flex-col text-sm text-muted">{t('order.rack')}
+          <input className={`${input} text-black`} value={rack} onChange={(e) => setRack(e.target.value)} />
+        </label>
+      </div>
 
-      <h2 className="font-semibold">{t('order.garments')}</h2>
-      {garments.map((g) => (
-        <GarmentForm key={g.key} value={g} onBusy={onBusy}
-          onChange={(p) => setGarments((prev) => prev.map((x) => (x.key === g.key ? { ...x, ...p } : x)))}
-          onRemove={garments.length > 1 ? () => setGarments((prev) => prev.filter((x) => x.key !== g.key)) : undefined} />
-      ))}
-      <button type="button" onClick={() => setGarments((prev) => [...prev, newGarment()])} className="min-h-12 rounded-lg border border-line bg-white text-lg">{t('order.add_garment')}</button>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t('order.garments')}>
+        {GARMENT_TYPES.map((ty) => {
+          const g = garments.find((x) => x.type === ty)
+          return (
+            <span key={ty} className={`flex min-h-12 items-center rounded-full border ${g ? 'border-accent bg-accent text-white' : 'border-line bg-white'}`}>
+              <button type="button" aria-pressed={!!g} className="min-h-12 pl-4 pr-3 text-lg" onClick={() => setGarments((p) => addChip(p, ty))}>
+                {t(`garment.${ty}` as Key)}{g && g.qty > 1 ? ` × ${g.qty}` : ''}
+              </button>
+              {g && <button type="button" aria-label={`${t('order.remove')} ${t(`garment.${ty}` as Key)}`} className="min-h-12 min-w-11 pr-2 text-lg"
+                onClick={() => setGarments((p) => removeChip(p, ty))}>✕</button>}
+            </span>
+          )
+        })}
+      </div>
+
+      <div className="flex gap-4">
+        <PhotoInput label={t('garment.cloth')} value={garments[0]?.cloth_photo_path ?? null} onBusy={onBusy}
+          onChange={(p) => setGarments((prev) => attachPhoto(prev, 'cloth_photo_path', p))} />
+        <PhotoInput label={t('garment.slip_label')} value={garments[0]?.measurement_photo_path ?? null} onBusy={onBusy}
+          onChange={(p) => setGarments((prev) => attachPhoto(prev, 'measurement_photo_path', p))} />
+      </div>
 
       <details className="rounded-xl border border-line bg-white p-3">
         <summary className="min-h-12 cursor-pointer py-2 text-lg">{t('order.more')}</summary>
@@ -141,19 +126,20 @@ export default function NewOrderPage() {
             <option value="">{t('order.assignee')}: {t('order.nobody')}</option>
             {staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
-          <input className={input} inputMode="numeric" placeholder={t('order.total')} aria-label={t('order.total')} value={total} onChange={(e) => setTotal(e.target.value.replace(/\D/g, ''))} />
           <div className="flex gap-2">
-            <input className={input} inputMode="numeric" placeholder={t('order.advance')} aria-label={t('order.advance')} value={advance} onChange={(e) => setAdvance(e.target.value.replace(/\D/g, ''))} />
-            <select className={input} aria-label="method" value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
-              {(['cash', 'upi', 'other'] as const).map((m) => <option key={m} value={m}>{t(`pay.${m}` as Key)}</option>)}
-            </select>
+            <input className={input} inputMode="numeric" placeholder={t('order.total')} aria-label={t('order.total')} value={total} onChange={(e) => setTotal(e.target.value.replace(/\D/g, ''))} />
+            <input className={input} inputMode="numeric" placeholder={t('field.paid')} aria-label={t('field.paid')} value={paid} onChange={(e) => setPaid(e.target.value.replace(/\D/g, ''))} />
           </div>
-          <textarea className="rounded-lg border border-line p-3 text-lg" rows={2} placeholder={t('order.notes')} aria-label={t('order.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          {garments.map((g) => (
+            <GarmentForm key={g.key} value={g} onBusy={onBusy}
+              onChange={(p) => setGarments((prev) => prev.map((x) => (x.key === g.key ? { ...x, ...p } : x)))}
+              onRemove={() => setGarments((prev) => prev.filter((x) => x.key !== g.key))} />
+          ))}
         </div>
       </details>
 
       {err && <p role="alert" className="text-red-600">{err}</p>}
-      <button onClick={save} disabled={!ready} className="min-h-14 rounded-lg bg-accent text-xl text-white disabled:opacity-50">
+      <button onClick={create} disabled={!ready} className="min-h-14 rounded-lg bg-accent text-xl text-white disabled:opacity-50">
         {saving ? t('order.saving') : busy ? t('photo.uploading') : t('order.save')}
       </button>
     </main>
