@@ -15,10 +15,11 @@ test.beforeAll(async () => {
 test('owner books an order, moves it to Ready, customer sees it', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('lang', 'en')
-    // Record calls and return null: Create takes the blocked-popup path, Ready's call is recorded.
-    const w = window as unknown as { __opened: unknown[][] }
+    // Record each call with its URL and whether it ran inside a user gesture (a call after an await would be popup-blocked on phones).
+    // Return null: Create takes the blocked-popup path.
+    const w = window as unknown as { __opened: { url: string; active: boolean | undefined }[] }
     w.__opened = []
-    window.open = (...a: unknown[]) => { w.__opened.push(a); return null }
+    window.open = (url?: string | URL) => { w.__opened.push({ url: String(url ?? ''), active: navigator.userActivation?.isActive }); return null }
   })
 
   await page.goto('/login')
@@ -43,15 +44,22 @@ test('owner books an order, moves it to Ready, customer sees it', async ({ page 
   await expect(column).toContainText('A1')
 
   await card.click()
+  // Create's pre-open: a blank window.open inside the click, not a wa.me URL.
+  const opened = () => page.evaluate(() => (window as unknown as { __opened: { url: string; active: boolean }[] }).__opened)
+  expect(await opened()).toEqual([{ url: '', active: true }])
+  const waOpens = async () => (await opened()).filter((o) => o.url.startsWith('https://wa.me/'))
   const menu = page.locator('button[aria-haspopup="true"]')
   for (const stage of ['Cutting', 'Stitching', 'Ironing', 'Ready']) {
     await menu.click()
+    if (stage === 'Ready') expect(await waOpens()).toHaveLength(0)
     await page.getByRole('listitem').getByRole('button', { name: stage, exact: true }).click()
     await expect(menu).toContainText(stage)
+    if (stage === 'Ready') {
+      const wa = await waOpens()
+      expect(wa).toHaveLength(1)
+      expect(wa[0].active).toBe(true)
+    }
   }
-  const wa = await page.evaluate(() =>
-    (window as unknown as { __opened: unknown[][] }).__opened.map((a) => String(a[0])).filter((u) => u.startsWith('https://wa.me/')))
-  expect(wa).toHaveLength(1)
 
   // The top-bar WhatsApp message always carries the tracking link.
   const href = await page.getByRole('link', { name: 'Send on WhatsApp' }).getAttribute('href')
