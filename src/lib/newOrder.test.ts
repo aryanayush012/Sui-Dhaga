@@ -10,6 +10,21 @@ describe('chips', () => {
     expect(removeChip(r, 'pant').map((x) => x.type)).toEqual(['shirt'])
   })
 })
+describe("removeChip photos", () => {
+  const withPhotos = (): Row[] => attachPhoto(addChip(addChip([], "pant", "a"), "shirt", "b"), "cloth_photo_path", "c")
+  it("moves photos to the new first row", () => {
+    const r = removeChip(attachPhoto(withPhotos(), "measurement_photo_path", "m"), "pant")
+    expect(r).toHaveLength(1)
+    expect(r[0]).toMatchObject({ type: "shirt", cloth_photo_path: "c", measurement_photo_path: "m" })
+  })
+  it("keeps an other row when nothing remains", () => {
+    const r = removeChip(attachPhoto([], "cloth_photo_path", "c", "k"), "other")
+    expect(r).toMatchObject([{ type: "other", cloth_photo_path: "c" }])
+  })
+  it("drops rows without photos", () => {
+    expect(removeChip(addChip([], "pant", "a"), "pant")).toEqual([])
+  })
+})
 describe('attachPhoto', () => {
   it('creates an other garment when none', () => {
     expect(attachPhoto([], 'cloth_photo_path', 'p', 'k')).toMatchObject([{ type: 'other', qty: 1, cloth_photo_path: 'p' }])

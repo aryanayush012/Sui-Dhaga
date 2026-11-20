@@ -58,24 +58,27 @@ export default function NewOrderPage() {
     const w = window.open('', '_blank')
     setSaving(true)
     supabase.rpc('create_order', { p: payload }).then(({ data, error }) => {
-      if (error) {
-        w?.close()
-        setSaving(false)
-        const k = `error.${error.message}`
-        setErr(t(KNOWN_ERRORS.includes(k) ? (k as Key) : 'error.generic'))
-        return
-      }
+      if (error) throw error
       const r = data as { id: string; slip_no: number; tracking_token: string }
-      const text = whatsappMessage('created', lang, {
-        shopName: shop.name, slipNo: r.slip_no, customerName: payload.customer_name, garmentSummary: garmentSummary(payload.garments),
-        dueDate: due, paid: advN ?? 0, balance: paymentSummary(totalN, advN ?? 0).balance, trackingUrl: `${siteUrl()}/t/${r.tracking_token}`,
-      })
-      const link = whatsappLink(m, text)
-      if (w) w.location.href = link
-      return supabase.rpc('record_whatsapp_send', { p_order_id: r.id, p_kind: 'created' }).then(({ error: e }) => {
-        if (e) console.warn('record_whatsapp_send', e.message)
-      }).then(() => router.push(`/?created=${r.slip_no}${w ? '' : `&wa=${encodeURIComponent(link)}`}`))
-    }, () => { w?.close(); setSaving(false); setErr(t('error.generic')) })
+      // Order exists from here on: always navigate, whatever else fails.
+      let link: string | null = null
+      try {
+        link = whatsappLink(m, whatsappMessage('created', lang, {
+          shopName: shop.name, slipNo: r.slip_no, customerName: payload.customer_name, garmentSummary: garmentSummary(payload.garments),
+          dueDate: due, paid: advN ?? 0, balance: paymentSummary(totalN, advN ?? 0).balance, trackingUrl: `${siteUrl()}/t/${r.tracking_token}`,
+        }))
+        if (w) w.location.href = link
+      } catch (e) { console.warn('whatsapp link', e) }
+      // Subscribed (lazy builder) but not awaited before navigating.
+      supabase.rpc('record_whatsapp_send', { p_order_id: r.id, p_kind: 'created' })
+        .then(({ error: e }) => { if (e) console.warn('record_whatsapp_send', e.message) }, (e) => console.warn('record_whatsapp_send', e))
+      router.push(`/?created=${r.slip_no}${!w && link ? `&wa=${encodeURIComponent(link)}` : ''}`)
+    }).then(undefined, (e: { message?: string } | null) => {
+      w?.close()
+      setSaving(false)
+      const k = `error.${e?.message}`
+      setErr(t(KNOWN_ERRORS.includes(k) ? (k as Key) : 'error.generic'))
+    })
   }
 
   const ready = name.trim() !== '' && mobile !== '' && due !== '' && busy === 0 && !saving

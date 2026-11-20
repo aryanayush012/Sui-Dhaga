@@ -16,7 +16,17 @@ export function addChip(rows: Row[], type: GarmentType, key = uid()): Row[] {
     : rows.map((r, i) => (i === at ? { ...r, qty: r.qty + 1 } : r))
 }
 
-export const removeChip = (rows: Row[], type: GarmentType): Row[] => rows.filter((r) => r.type !== type)
+// Never discards uploaded photos: they move to the new first row, or to one `other` row if none remain.
+export function removeChip(rows: Row[], type: GarmentType): Row[] {
+  const gone = rows.filter((r) => r.type === type)
+  const left = rows.filter((r) => r.type !== type)
+  const cloth = gone.find((r) => r.cloth_photo_path)?.cloth_photo_path
+  const slip = gone.find((r) => r.measurement_photo_path)?.measurement_photo_path
+  if (!cloth && !slip) return left
+  if (left.length === 0) return [{ key: gone[0].key, type: "other", qty: 1, measurements: {}, cloth_photo_path: cloth, measurement_photo_path: slip }]
+  const [first, ...rest] = left
+  return [{ ...first, cloth_photo_path: first.cloth_photo_path ?? cloth, measurement_photo_path: first.measurement_photo_path ?? slip }, ...rest]
+}
 
 // Photo buttons attach to the first garment, or create one `other` garment.
 export function attachPhoto(rows: Row[], field: 'cloth_photo_path' | 'measurement_photo_path', path: string | null, key = uid()): Row[] {
