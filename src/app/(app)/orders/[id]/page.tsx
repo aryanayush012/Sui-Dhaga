@@ -1,20 +1,20 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useSession } from '@/lib/session'
 import { useT, type Key } from '@/lib/i18n'
 import { en } from '@/lib/i18n/en'
 import { errorKey } from '@/lib/ui'
 import { paymentSummary } from '@/lib/money'
 import { normalizeMobile } from '@/lib/mobile'
-import { isPhone, openWhatsApp, whatsappLink, whatsappMessage } from '@/lib/whatsapp'
-import { dueAutoOpen, parseAmount, parseTotal, waData, type EventRow } from '@/lib/orderDetail'
-import { currentStatus, readyStageId, statusEffects, statusLabelKey, statusOptions, statusParam, targetTone, type StatusTarget } from '@/lib/status'
+import { openWhatsApp } from '@/lib/whatsapp'
+import { dueAutoOpen, parseAmount, parseTotal, type EventRow } from '@/lib/orderDetail'
+import { currentStatus, statusLabelKey, targetTone, type StatusTarget } from '@/lib/status'
 import type { Stage } from '@/lib/board'
 import { uid } from '@/lib/uid'
-import { siteUrl } from '@/lib/site'
-import type { BoardOrder, CommKind } from '@/lib/types'
+import type { BoardOrder } from '@/lib/types'
+import { useOrderActions } from '@/lib/useOrderActions'
 import { StatusMenu } from '@/components/StatusMenu'
 import { InlineField } from '@/components/InlineField'
 import { Garments, Measurements, type Garment } from './Garments'
@@ -25,8 +25,8 @@ type Res = PromiseLike<{ error: { message: string } | null }>
 
 export default function TicketPage() {
   const { id } = useParams<{ id: string }>()
-  const { supabase, member, shop } = useSession()
-  const { t, lang } = useT()
+  const { supabase, member } = useSession()
+  const { t } = useT()
   const isOwner = member.role === 'owner'
   const [o, setO] = useState<BoardOrder | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -35,8 +35,6 @@ export default function TicketPage() {
   const [events, setEvents] = useState<EventRow[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [stages, setStages] = useState<Stage[]>([])
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState('')
   const sentRef = useRef(false) // due-date popup opened in the last save click
   const [rackEdit, setRackEdit] = useState(0) // bump to open the Rack field for editing
   const [tab, setTab] = useState<'m' | 'h'>('m')
@@ -81,6 +79,13 @@ export default function TicketPage() {
     return null
   }
 
+  const act = useOrderActions(o, stages, load, { onNeedsRack: () => setRackEdit((n) => n + 1) })
+  // Arriving from a card's "Ready" with no rack: open the Rack field with the hint.
+  const params = useSearchParams()
+  useEffect(() => {
+    if (loaded && params.get('rack') === '1') { act.setErr('set_rack_first'); setRackEdit((n) => n + 1) }
+  }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!loaded) return <main><p className="text-[#5E6C84]">{t('od.loading')}</p></main>
   if (!o) return <main><p role="alert" className="text-[#BF2600]">{t('error.not_found')}</p></main>
 
@@ -88,28 +93,6 @@ export default function TicketPage() {
   const canAct = isOwner || o.assignee_id === null || o.assignee_id === member.id
   const { balance } = paymentSummary(o.total_amount, o.paid_amount)
   const label = (s: StatusTarget) => { const k = statusLabelKey(s, stages); return (t(k as Key) as string | undefined) ?? k }
-  const waUrl = (kind: CommKind, due?: string) =>
-    o.customer_mobile ? whatsappLink(o.customer_mobile, whatsappMessage(kind, lang, waData(o, shop.name, siteUrl(), due))) : ''
-  // Lazy builder: must be .then-ed or the request never fires.
-  const recordSend = (kind: CommKind) => rpc('record_whatsapp_send', { p_order_id: o.id, p_kind: kind })
-    .then(({ error }) => { if (error) console.warn('record_whatsapp_send', error.message); return load() })
-
-  // Runs synchronously in the menu click so window.open keeps the user gesture.
-  function pick(target: StatusTarget) {
-    if (!o || busy || statusParam(target) === statusParam(currentStatus(o))) return
-    const fx = statusEffects(target, o, member.role, readyStageId(stages))
-    if (fx.needsRack) { setErr('set_rack_first'); setRackEdit((n) => n + 1); return }
-    if (fx.confirm && !window.confirm(fx.confirm === 'rejected' ? t('confirm.rejected')
-      : balance ? t('confirm.delivered_due', { due: balance }) : t('confirm.delivered'))) return
-    const wa = fx.openWhatsApp ? waUrl('ready') : ''
-    const w = wa ? openWhatsApp(wa) : false
-    setBusy(true); setErr('')
-    rpc('set_status', { p_order_id: o.id, p_target: statusParam(target) })
-      // Record after the move: "communicated" compares the send time with the stage event.
-      .then(({ error }) => { if (error) setErr(error.message); return w && !error ? recordSend('ready') : load() })
-      .then(() => setBusy(false), () => setBusy(false))
-  }
-
   const info = (p: { name?: string; mobile?: string | null; notes?: string | null }) => call('update_order_info', {
     p_order_id: o.id, p_name: p.name ?? o.customer_name, p_mobile: p.mobile ?? o.customer_mobile, p_notes: p.notes === undefined ? notes : p.notes,
   })
@@ -121,8 +104,8 @@ export default function TicketPage() {
       <div className="flex items-center gap-2">
         <span className="flex-1 text-sm font-semibold text-[#5E6C84]">#{o.slip_no}</span>
         {wa && (
-          <a href={waUrl(o.comm_kind!)} target="_blank" rel="noopener noreferrer" aria-label={t('order.whatsapp')} title={t('order.whatsapp')}
-            onClick={(e) => { if (isPhone()) { e.preventDefault(); openWhatsApp(e.currentTarget.href, true) } recordSend(o.comm_kind!) }}
+          <a href={act.waHref} target="_blank" rel="noopener noreferrer" aria-label={t('order.whatsapp')} title={t('order.whatsapp')}
+            onClick={act.sendWhatsApp}
             className={`relative flex size-11 items-center justify-center rounded-full ${o.communicated ? 'bg-[#F4F5F7] text-[#00875A]' : 'bg-[#00875A] text-white'}`}>
             <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5 13.6c-.2.6-1.2 1.2-1.7 1.2-.4.1-1 .1-3.1-.8a10.5 10.5 0 0 1-4.3-3.8c-.3-.4-1-1.4-1-2.6s.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.3 0 .5l-.4.6-.3.4c-.1.1-.2.3 0 .5.2.3.7 1.2 1.6 1.9 1 .9 1.9 1.2 2.2 1.3.2.1.4.1.5-.1l.7-.9c.2-.2.4-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.2.1.6-.1 1.2Z" /></svg>
           </a>
@@ -130,9 +113,9 @@ export default function TicketPage() {
         <Link href="/" aria-label={t('od.close')} className="flex size-11 items-center justify-center rounded text-xl text-[#42526E] hover:bg-[#F4F5F7]">✕</Link>
       </div>
       <h1 className="text-lg font-bold text-[#172B4D]">{o.customer_name} · {o.garment_summary}</h1>
-      <StatusMenu options={statusOptions(stages, member.role)} current={currentStatus(o)} labelOf={label} toneOf={(s) => targetTone(s, stages)}
-        disabled={busy || (!isOwner && (closed || !canAct))} onPick={pick} />
-      {err && <p role="alert" className="text-sm text-[#BF2600]">{t(errorKey(err, en) as Key)}</p>}
+      <StatusMenu options={act.options} current={currentStatus(o)} labelOf={label} toneOf={(s) => targetTone(s, stages)}
+        disabled={act.menuDisabled} onPick={act.pick} />
+      {act.err && <p role="alert" className="text-sm text-[#BF2600]">{t(errorKey(act.err, en) as Key)}</p>}
 
       <div className="divide-y divide-[#EBECF0]">
         {isOwner && (
@@ -143,11 +126,11 @@ export default function TicketPage() {
         <InlineField label={t('field.rack')} input="text" startEditing={rackEdit} editable={!closed && canAct} value={o.rack ?? ''}
           onSave={(v) => (v.trim() === (o.rack ?? '') ? Promise.resolve(null) : call('set_rack', { p_order_id: o.id, p_rack: v.trim() }))} />
         <InlineField label={t('field.due')} input="date" editable={ed} value={o.due_date}
-          before={(v) => { const u = dueAutoOpen(o, v) ? waUrl('date_changed', v) : ''; sentRef.current = u ? openWhatsApp(u) : false }}
+          before={(v) => { const u = dueAutoOpen(o, v) ? act.waUrl('date_changed', v) : ''; sentRef.current = u ? openWhatsApp(u) : false }}
           onSave={async (v) => {
             if (!v || v === o.due_date) return v ? null : 'invalid_input'
             const code = await call('change_due_date', { p_order_id: o.id, p_due: v })
-            if (!code && sentRef.current) await recordSend('date_changed') // after the due_date event, so it counts
+            if (!code && sentRef.current) await act.recordSend('date_changed') // after the due_date event, so it counts
             return code
           }} />
         {isOwner && (

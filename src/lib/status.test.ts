@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { statusOptions, currentStatus, statusLabelKey, statusTone, statusEffects, boardColumns, statusParam, readyStageId, targetTone } from './status'
+import { statusOptions, currentStatus, statusLabelKey, statusTone, statusEffects, boardColumns, statusParam, readyStageId, targetTone, statusMenuDisabled } from './status'
 import type { BoardOrder } from './types'
 
 const S = ['Unstarted', 'Cutting', 'Stitching', 'Ironing', 'Ready'].map((name, i) => ({ id: `s${i + 1}`, name, position: i + 1 }))
@@ -60,5 +60,19 @@ describe('status', () => {
     expect(['s1', 's3', 's5'].map((id) => targetTone({ kind: 'stage', stageId: id }, S))).toEqual(['todo', 'progress', 'ready'])
     expect(targetTone({ kind: 'delivered' }, S)).toBe('delivered')
     expect(targetTone({ kind: 'cancelled' }, S)).toBe('rejected')
+  })
+})
+
+describe('statusMenuDisabled', () => {
+  const o = (assignee_id: string | null, special_state: 'delivered' | 'cancelled' | null = null) => ({ assignee_id, special_state })
+  it('owner can always pick', () => {
+    expect(statusMenuDisabled('owner', o('x'), 'me')).toBe(false)
+    expect(statusMenuDisabled('owner', o(null, 'delivered'), 'me')).toBe(false)
+  })
+  it('karigar: own or unassigned open orders only', () => {
+    expect(statusMenuDisabled('employee', o('me'), 'me')).toBe(false)
+    expect(statusMenuDisabled('employee', o(null), 'me')).toBe(false)
+    expect(statusMenuDisabled('employee', o('other'), 'me')).toBe(true)
+    expect(statusMenuDisabled('employee', o('me', 'cancelled'), 'me')).toBe(true)
   })
 })

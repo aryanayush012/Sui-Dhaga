@@ -59,3 +59,7 @@ export function targetTone(t: StatusTarget, stages: Stage[]): Tone {
   const s = byPos(stages)
   return t.stageId === s.at(-1)?.id ? 'ready' : t.stageId === s[0]?.id ? 'todo' : 'progress'
 }
+
+// Karigars change status only on their own or unassigned orders, never on closed ones. The owner always can.
+export const statusMenuDisabled = (role: Role, o: Pick<BoardOrder, 'assignee_id' | 'special_state'>, memberId: string) =>
+  role !== 'owner' && (o.special_state !== null || (o.assignee_id !== null && o.assignee_id !== memberId))
