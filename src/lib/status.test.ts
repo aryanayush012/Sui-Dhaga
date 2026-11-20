@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { statusOptions, currentStatus, statusLabelKey, statusTone, statusEffects, boardColumns } from './status'
+import { statusOptions, currentStatus, statusLabelKey, statusTone, statusEffects, boardColumns, statusParam, readyStageId, targetTone } from './status'
 import type { BoardOrder } from './types'
 
 const S = ['Unstarted', 'Cutting', 'Stitching', 'Ironing', 'Ready'].map((name, i) => ({ id: `s${i + 1}`, name, position: i + 1 }))
@@ -44,5 +44,13 @@ describe('status', () => {
     expect(statusLabelKey({ kind: 'stage', stageId: 's2' }, S)).toBe('stage.cutting')
     expect(statusLabelKey({ kind: 'cancelled' }, S)).toBe('status.rejected')
     expect(statusLabelKey({ kind: 'delivered' }, S)).toBe('status.delivered')
+  })
+  it('targets: rpc param, ready stage, option tone', () => {
+    expect(statusParam({ kind: 'stage', stageId: 's3' })).toBe('s3')
+    expect(statusParam({ kind: 'cancelled' })).toBe('cancelled')
+    expect(readyStageId([...S].reverse())).toBe('s5')
+    expect(['s1', 's3', 's5'].map((id) => targetTone({ kind: 'stage', stageId: id }, S))).toEqual(['todo', 'progress', 'ready'])
+    expect(targetTone({ kind: 'delivered' }, S)).toBe('delivered')
+    expect(targetTone({ kind: 'cancelled' }, S)).toBe('rejected')
   })
 })

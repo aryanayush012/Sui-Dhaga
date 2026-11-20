@@ -1,4 +1,5 @@
 import type { BoardOrder } from './types'
+import type { Tone } from './ui'
 import type { Stage } from './board'
 import { stageKey, type Key } from './i18n/translate'
 
@@ -41,4 +42,17 @@ export function boardColumns(rows: BoardOrder[], stages: Stage[]) {
     stage,
     rows: open.filter((r) => r.stage_id === stage.id).sort((a, b) => a.due_date.localeCompare(b.due_date)),
   }))
+}
+
+// RPC arg for set_status: stage id as text, or the end state.
+export const statusParam = (t: StatusTarget) => (t.kind === 'stage' ? t.stageId : t.kind)
+
+const byPos = (stages: Stage[]) => [...stages].sort((a, b) => a.position - b.position)
+export const readyStageId = (stages: Stage[]) => byPos(stages).at(-1)?.id ?? ''
+
+// Tone for a menu option (no order row): same colours as statusTone.
+export function targetTone(t: StatusTarget, stages: Stage[]): Tone {
+  if (t.kind !== 'stage') return t.kind === 'delivered' ? 'delivered' : 'rejected'
+  const s = byPos(stages)
+  return t.stageId === s.at(-1)?.id ? 'ready' : t.stageId === s[0]?.id ? 'todo' : 'progress'
 }

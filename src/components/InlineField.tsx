@@ -9,10 +9,11 @@ type Props = {
   input: 'text' | 'tel' | 'number' | 'date' | 'select'
   options?: { value: string; label: string }[]
   onSave: (v: string) => Promise<string | null>
-  before?: () => void
+  before?: (v: string) => void
+  link?: string // display becomes this link (e.g. tel:) and a ✎ button starts editing
 }
 
-export function InlineField({ label, value, display, editable, input, options, onSave, before }: Props) {
+export function InlineField({ label, value, display, editable, input, options, onSave, before, link }: Props) {
   const { t } = useT()
     const [draft, setDraft] = useState<string | null>(null) // null = not editing; input falls back to live value
   const [saving, setSaving] = useState(false)
@@ -22,7 +23,7 @@ export function InlineField({ label, value, display, editable, input, options, o
   const close = () => { setDraft(null); setErr(null) }
   const save = async () => {
     if (saving) return
-    before?.() // sync, inside the click/keypress, so window.open stays in the user gesture
+    before?.(draft ?? value) // sync, inside the click/keypress, so window.open stays in the user gesture
     setErr(null)
     setSaving(true)
     let code: string | null
@@ -47,6 +48,11 @@ export function InlineField({ label, value, display, editable, input, options, o
           )}
           <button type="button" aria-label={t('ui.save')} disabled={saving} onClick={save} className={`${btn} bg-[#0052CC] text-white`}>✓</button>
           <button type="button" aria-label={t('ui.cancel')} onClick={close} className={`${btn} bg-[#F4F5F7] text-[#42526E]`}>✕</button>
+        </div>
+      ) : link ? (
+        <div className="flex items-center">
+          <a href={link} className="flex min-h-11 flex-1 items-center px-1 text-base text-[#0052CC] underline">{display ?? (value || '—')}</a>
+          {editable && <button type="button" aria-label={`${t('od.edit')} ${label}`} onClick={() => setDraft(value)} className="h-11 w-11 rounded text-[#42526E] hover:bg-[#F4F5F7]">✎</button>}
         </div>
       ) : (
         <button type="button" disabled={!editable} onClick={() => setDraft(value)}

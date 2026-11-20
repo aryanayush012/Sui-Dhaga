@@ -1,4 +1,6 @@
 import type { Key } from './i18n'
+import type { BoardOrder } from './types'
+import { paymentSummary } from './money'
 
 export type EventRow = { id: string; action: string; from_value: string | null; to_value: string | null; actor_id: string | null; created_at: string }
 type T = (k: Key, v?: Record<string, string | number>) => string
@@ -46,3 +48,16 @@ export function parseTotal(s: string): Parsed<number> {
 }
 
 export const parseAmount = parseTotal // digits only, >= 0 (Paid field)
+
+// whatsappMessage data for a board row; dueDate overrides for a date being saved.
+export function waData(o: BoardOrder, shopName: string, origin: string, dueDate = o.due_date) {
+  return {
+    shopName, slipNo: o.slip_no, customerName: o.customer_name, garmentSummary: o.garment_summary, dueDate,
+    paid: o.paid_amount, balance: paymentSummary(o.total_amount, o.paid_amount).balance,
+    trackingUrl: o.tracking_token ? `${origin}/t/${o.tracking_token}` : '',
+  }
+}
+
+// Auto-open WhatsApp on a due-date save only for a real change on an open order with a mobile.
+export const dueAutoOpen = (o: Pick<BoardOrder, 'customer_mobile' | 'special_state' | 'due_date'>, due: string) =>
+  !!o.customer_mobile && o.special_state === null && due !== '' && due !== o.due_date
