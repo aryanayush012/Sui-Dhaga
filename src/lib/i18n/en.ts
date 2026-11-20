@@ -221,4 +221,6 @@ export const en = {
   'settings.staff': 'Staff',
   'settings.app': 'App',
   'order.system': 'System',
+  'ui.save': 'Save',
+  'ui.cancel': 'Cancel',
 } as const satisfies Record<string, string>

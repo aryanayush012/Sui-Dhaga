@@ -223,4 +223,6 @@ export const hi = {
   'settings.staff': 'स्टाफ़',
   'settings.app': 'ऐप',
   'order.system': 'सिस्टम',
+  'ui.save': 'सहेजें',
+  'ui.cancel': 'रद्द करें',
 } satisfies Record<keyof typeof en, string>
