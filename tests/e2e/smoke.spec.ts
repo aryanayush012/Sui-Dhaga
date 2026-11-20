@@ -15,11 +15,14 @@ test.beforeAll(async () => {
 test('owner books an order, moves it to Ready, customer sees it', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('lang', 'en')
-    // Record each call with its URL and whether it ran inside a user gesture (a call after an await would be popup-blocked on phones).
-    // Return null: Create takes the blocked-popup path.
-    const w = window as unknown as { __opened: { url: string; active: boolean | undefined }[] }
+    // Record each call with its URL and whether it ran synchronously inside a click handler. iOS Safari blocks window.open
+    // after any await (userActivation.isActive stays true ~5 s in Chromium, so it can't catch that); the setTimeout(0)
+    // clears the flag before a fetch/RPC await resolves. Return null: Create takes the blocked-popup path.
+    const w = window as unknown as { __opened: { url: string; sync: boolean }[]; __inClick: boolean }
     w.__opened = []
-    window.open = (url?: string | URL) => { w.__opened.push({ url: String(url ?? ''), active: navigator.userActivation?.isActive }); return null }
+    w.__inClick = false
+    window.addEventListener('click', () => { w.__inClick = true; setTimeout(() => { w.__inClick = false }, 0) }, true)
+    window.open = (url?: string | URL) => { w.__opened.push({ url: String(url ?? ''), sync: w.__inClick === true }); return null }
   })
 
   await page.goto('/login')
@@ -45,8 +48,8 @@ test('owner books an order, moves it to Ready, customer sees it', async ({ page 
 
   await card.click()
   // Create's pre-open: a blank window.open inside the click, not a wa.me URL.
-  const opened = () => page.evaluate(() => (window as unknown as { __opened: { url: string; active: boolean }[] }).__opened)
-  expect(await opened()).toEqual([{ url: '', active: true }])
+  const opened = () => page.evaluate(() => (window as unknown as { __opened: { url: string; sync: boolean }[] }).__opened)
+  expect(await opened()).toEqual([{ url: '', sync: true }])
   const waOpens = async () => (await opened()).filter((o) => o.url.startsWith('https://wa.me/'))
   const menu = page.locator('button[aria-haspopup="true"]')
   for (const stage of ['Cutting', 'Stitching', 'Ironing', 'Ready']) {
@@ -57,7 +60,7 @@ test('owner books an order, moves it to Ready, customer sees it', async ({ page 
     if (stage === 'Ready') {
       const wa = await waOpens()
       expect(wa).toHaveLength(1)
-      expect(wa[0].active).toBe(true)
+      expect(wa[0].sync).toBe(true)
     }
   }
 
