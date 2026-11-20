@@ -1,6 +1,6 @@
 # Sui-Dhaga
 
-Mobile-first PWA for tailor shops: order board, per-garment details, payments, WhatsApp updates and a public customer tracking page. Next.js 15 (App Router) + Supabase.
+Mobile-first PWA for tailor shops: Jira-style order board and list, ticket view with inline editing and a status menu (Not started, Cutting, Stitching, Ironing, Ready, Delivered, Rejected), per-garment details, payments, WhatsApp updates, owner settings (staff, shop, app) and a public Hindi/English customer tracking page. Next.js 15 (App Router) + Supabase.
 
 ## Local setup
 
@@ -49,7 +49,7 @@ Run with the service-role key in `.env.local`, or pass `--env <file>` to use ano
 ```bash
 npm test               # unit tests (src/)
 npm run test:db        # database/RLS tests, files run one at a time (hits the Supabase dev project)
-npm run e2e            # Playwright smoke test: builds, starts the app, creates a fresh shop in the dev DB
+npm run e2e            # Playwright smoke + offline tests: builds, starts the app, creates a fresh shop in the dev DB
 npm run lint && npx tsc --noEmit
 ```
 
@@ -76,7 +76,10 @@ Logins are a mobile number mapped to a synthetic email `<mobile>@users.sui-dhaga
 ## Manual phone checks
 
 - Install to the home screen (Android Chrome: "Install app"; iPhone Safari: Share > Add to Home Screen); icon and name look right.
-- Log in, book an order with a camera photo, and send the WhatsApp message.
+- Log in, book an order with a camera photo (pick garment chips); WhatsApp opens on Create, or the banner shows a WhatsApp link if the popup is blocked.
+- On a ticket, use the status menu to move to Ready: WhatsApp opens with the ready message.
+- Toggle Board / List on the home screen; swipe between board columns.
+- Settings: add a staff member (karigar), edit shop details, switch language.
 - Switch the phone to airplane mode and reopen the app: the board shows last-saved data with the "Offline" banner.
-- Open a tracking link in a private tab; move the order to Ready and reload: it shows "Ready for collection".
+- Open a tracking link in a private tab; move the order to Ready and reload: it shows "Ready for collection"; reject it and the page shows "Rejected / अस्वीकृत".
 - Check Hindi and English on the board and the order form.

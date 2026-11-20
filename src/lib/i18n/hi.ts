@@ -139,6 +139,7 @@ export const hi = {
   'track.inactive_hint': 'कृपया दुकान से नया लिंक माँगें।',
   'track.order': 'ऑर्डर #{n}',
   'track.expected': '{date} तक तैयार होगा',
+  'track.money': 'जमा ₹{paid}, बाकी ₹{n}',
   'status.unstarted': 'शुरू नहीं हुआ',
   'status.delivered': 'डिलीवर हुआ',
   'status.rejected': 'अस्वीकृत',

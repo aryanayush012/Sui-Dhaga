@@ -12,18 +12,21 @@ test.beforeAll(async () => {
 })
 
 test('board shell and cached orders load offline, banner clears when back online', async ({ page, context }) => {
-  await page.addInitScript(() => localStorage.setItem('lang', 'en'))
+  await page.addInitScript(() => {
+    localStorage.setItem('lang', 'en')
+    window.open = () => null // Create's WhatsApp popup: take the banner path
+  })
   await page.goto('/login')
   await page.getByLabel('Mobile number').fill(mobile)
   await page.getByLabel('Password / PIN').fill(password)
   await page.getByRole('button', { name: 'Log in' }).click()
-  await expect(page.getByRole('tab', { name: /Cutting/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Board' })).toBeVisible()
 
   await page.goto('/orders/new')
   await page.getByLabel('Customer name').fill('Offline Ravi')
   await page.getByLabel('Mobile number').fill('9876543210')
+  await page.getByRole('button', { name: 'Pant', exact: true }).click()
   await page.getByRole('button', { name: 'Save order' }).click()
-  await page.getByRole('button', { name: 'Skip' }).click()
   await expect(page.getByText('Offline Ravi')).toBeVisible()
 
   // SW controls pages only after registration; reload so the `/` navigation goes through it and is cached.

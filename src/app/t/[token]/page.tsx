@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 type Tracking = {
   shop_name: string; slip_no: number; garment_summary: string; stage_name: string; stage_names: string[]
-  is_ready: boolean; special_state: 'on_hold' | 'cancelled' | 'delivered' | null
+  is_ready: boolean; special_state: 'cancelled' | 'delivered' | null
   due_date: string; total_amount: number | null; paid_amount: number
 }
 
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   return o ? { title: `${o.shop_name} · Order #${o.slip_no} · ${o.stage_name}` } : {}
 }
 
-const STATE_KEY = { on_hold: 'od.state_on_hold', cancelled: 'od.state_cancelled', delivered: 'od.state_delivered' } as const
+const STATE_KEY = { cancelled: 'status.rejected', delivered: 'status.delivered' } as const
 
 function View({ o, lang }: { o: Tracking; lang: Lang }) {
   const t = (k: Key, v?: Record<string, string | number>) => translate(lang, k, v)
@@ -37,7 +37,7 @@ function View({ o, lang }: { o: Tracking; lang: Lang }) {
   const { balance } = paymentSummary(o.total_amount, o.paid_amount)
   const state = o.special_state
   const headline = state ? t(STATE_KEY[state]) : o.is_ready ? t('track.ready') : stageLabel(o.stage_name, (k) => t(k))
-  const tone = state === 'cancelled' ? 'bg-red-100 text-red-800' : state === 'on_hold' ? 'bg-amber-100 text-amber-800'
+  const tone = state === 'cancelled' ? 'bg-red-100 text-red-800'
     : o.is_ready || state === 'delivered' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
   return (
     <section lang={lang} className="space-y-4">
@@ -57,8 +57,8 @@ function View({ o, lang }: { o: Tracking; lang: Lang }) {
         </ol>
       )}
       {!state && !o.is_ready && <p className="text-lg">{t('track.expected', { date: fmtDate(o.due_date) })}</p>}
-      {state !== 'cancelled' && balance !== null && balance > 0 && (
-        <p className="text-xl font-semibold">{t('board.balance_due', { n: balance })}</p>
+      {state !== 'cancelled' && balance !== null && (
+        <p className="text-xl font-semibold">{t('track.money', { paid: o.paid_amount, n: balance })}</p>
       )}
     </section>
   )

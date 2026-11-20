@@ -137,6 +137,7 @@ export const en = {
   'track.inactive_hint': 'Please ask the shop for a new link.',
   'track.order': 'Order #{n}',
   'track.expected': 'Expected by {date}',
+  'track.money': 'Paid ₹{paid}, remaining ₹{n}',
   'status.unstarted': 'Not started',
   'status.delivered': 'Delivered',
   'status.rejected': 'Rejected',
